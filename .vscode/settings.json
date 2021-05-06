@@ -1,0 +1,14 @@
+{
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/src",
+        "${fileWorkspaceFolder}"
+    ],
+    "files.associations": {
+        "*.cu": "cpp",
+        "*.tcc": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp",
+        "type_traits": "cpp",
+        "new": "cpp"
+    }
+}

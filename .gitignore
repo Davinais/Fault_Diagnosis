@@ -1,0 +1,12 @@
+# Documents
+PA3.doc
+
+# Reports
+*.log
+*.uf
+
+# Obeject file
+*.o
+
+# Binary
+atpg
