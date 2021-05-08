@@ -2,7 +2,7 @@
 
 CFLAGS = -std=c++11 -g  
 
-FILES = atpg.o main.o input.o level.o sim.o podem.o init_flist.o faultsim.o display.o tdfsim.o
+FILES = atpg.o main.o input.o level.o sim.o podem.o init_flist.o faultsim.o display.o tdfsim.o genFailLog.o
 
 all : $(FILES)
 	g++ $(CFLAGS) $(FILES) -lm -o atpg
@@ -26,5 +26,7 @@ display.o : atpg.h display.cpp
 	g++ $(CFLAGS) -c display.cpp
 tdfsim.o : atpg.h tdfsim.cpp
 	g++ $(CFLAGS) -c tdfsim.cpp
+genFailLog.o : atpg.h genFailLog.cpp
+	g++ $(CFLAGS) -c genFailLog.cpp
 clean:
 	rm *.o atpg	

@@ -10,7 +10,7 @@
 void usage();
 
 int main(int argc, char *argv[]) {
-  string inpFile, vetFile;
+  string inpFile, vetFile, faultin;
   int i, j;
   ATPG atpg; // create an ATPG obj, named atpg
 
@@ -35,6 +35,18 @@ int main(int argc, char *argv[]) {
       vetFile = string(argv[i + 1]);
       atpg.set_tdfsim_only(true);
       i += 2;
+    }else if (strcmp(argv[i], "-genFailLog") == 0) {
+      vetFile = string(argv[i + 1]);
+      atpg.set_genFailLog_only(true);
+      i += 2;
+    }
+    else if (strcmp(argv[i], "-fault") == 0) {
+      faultin = string(argv[i + 1]);
+      atpg.set_genFailLog_Wire(string(argv[i + 1]));
+      atpg.set_genFailLog_Gate(string(argv[i + 2]));
+      atpg.set_genFailLog_IO(string(argv[i + 3]));
+      atpg.set_genFailLog_Type(string(argv[i + 4]));
+      i += 5;
     }
       // for N-detect fault simulation
     else if (strcmp(argv[i], "-ndet") == 0) {
@@ -51,7 +63,8 @@ int main(int argc, char *argv[]) {
         }
       }
       i++;
-    } else {
+    } 
+    else {
       inpFile = string(argv[i]);
       i++;
     }
@@ -76,12 +89,13 @@ int main(int argc, char *argv[]) {
   atpg.create_dummy_gate(); //init_flist.cpp
   atpg.timer(stdout, "for creating dummy nodes");
 
-  if (!atpg.get_tdfsim_only()) atpg.generate_fault_list(); //init_flist.cpp
+  if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only())) atpg.generate_fault_list(); //init_flist.cpp
+  else if(!atpg.get_tdfsim_only()) atpg.generate_genFailLog_list();
   else atpg.generate_tdfault_list();
   atpg.timer(stdout, "for generating fault list");
 
   atpg.test(); //defined in atpg.cpp
-  if (!atpg.get_tdfsim_only())atpg.compute_fault_coverage(); //init_flist.cpp
+  if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only()))atpg.compute_fault_coverage(); //init_flist.cpp
   atpg.timer(stdout, "for test pattern generation");
   exit(EXIT_SUCCESS);
 }
@@ -106,6 +120,10 @@ void ATPG::set_fsim_only(const bool &b) {
 
 void ATPG::set_tdfsim_only(const bool &b) {
   this->tdfsim_only = b;
+}
+
+void ATPG::set_genFailLog_only(const bool &b) {
+  this->genFailLog_only = b;
 }
 
 void ATPG::set_total_attempt_num(const int &i) {
