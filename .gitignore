@@ -2,8 +2,12 @@
 PA3.doc
 
 # Reports
+failLog
 *.log
 *.uf
+
+# Temp files
+.nfs*
 
 # Obeject file
 *.o
