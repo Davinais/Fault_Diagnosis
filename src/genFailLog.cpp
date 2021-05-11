@@ -281,7 +281,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
     for (i = 0; i < nckt; i++) {
         if (sort_wlist[i]->is_scheduled()) {
           sort_wlist[i]->remove_scheduled();
-          fault_sim_evaluate(sort_wlist[i]);
+          if(!sort_wlist[i]->is_faulty()) fault_sim_evaluate(sort_wlist[i]);
         //   cout << "hi"<<endl;
         }
         // cout << "hi2"<<endl;
