@@ -96,6 +96,9 @@ class ATPG {
   bool get_tdfsim_only() { return tdfsim_only; }
 
 
+
+  void genFailLog_fault_sim();
+  void genFailLog_sim_a_vector(const string &, int &);
   void set_genFailLog_Wire(string s){
     fault_Wire_Pos.push_back(s);
   }
@@ -110,6 +113,8 @@ class ATPG {
   }
   bool get_genFailLog_only() { return genFailLog_only; }
   void generate_genFailLog_list();
+  void print_name(string s);
+  
 
   /* defined in atpg.cpp */
   void test();

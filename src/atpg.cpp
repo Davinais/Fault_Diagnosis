@@ -42,7 +42,15 @@ void ATPG::test() {
         return;
     }// if tdfsim only
 
+    /* genFailLog_only fault sim mode */
+    if (genFailLog_only) {
+        genFailLog_fault_sim();
+        // transition_delay_fault_simulation(total_detect_num);
+        // in_vector_no += vectors.size();
+        // display_undetect();
 
+        return;
+    }// if tdfsim only
 
 
 

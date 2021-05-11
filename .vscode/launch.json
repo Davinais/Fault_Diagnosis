@@ -9,7 +9,12 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/src/atpg",
-            "args": [],
+            "args": [
+                "-genFailLog",
+                "../patterns/c17.ptn",
+                "../sample_circuits/c17.ckt",
+                "-fault 16GAT g4 GO SA0"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
