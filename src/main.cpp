@@ -78,25 +78,25 @@ int main(int argc, char *argv[]) {
 
 /* if vector file is provided, read it */
   if (!vetFile.empty()) { atpg.read_vectors(vetFile); }
-  atpg.timer(stdout, "for reading in circuit");
+  if(!atpg.get_genFailLog_only()) atpg.timer(stdout, "for reading in circuit");
 
   atpg.level_circuit();  // level.cpp
-  atpg.timer(stdout, "for levelling circuit");
+  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for levelling circuit");
 
   atpg.rearrange_gate_inputs();  //level.cpp
-  atpg.timer(stdout, "for rearranging gate inputs");
+  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for rearranging gate inputs");
 
   atpg.create_dummy_gate(); //init_flist.cpp
-  atpg.timer(stdout, "for creating dummy nodes");
+  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for creating dummy nodes");
 
   if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only())) atpg.generate_fault_list(); //init_flist.cpp
   else if(!atpg.get_tdfsim_only()) atpg.generate_genFailLog_list();
   else atpg.generate_tdfault_list();
-  atpg.timer(stdout, "for generating fault list");
+  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for generating fault list");
 
   atpg.test(); //defined in atpg.cpp
   if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only()))atpg.compute_fault_coverage(); //init_flist.cpp
-  atpg.timer(stdout, "for test pattern generation");
+  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for test pattern generation");
   exit(EXIT_SUCCESS);
 }
 

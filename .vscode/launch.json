@@ -11,8 +11,8 @@
             "program": "${workspaceFolder}/src/atpg",
             "args": [
                 "-genFailLog",
-                "../patterns/c17.ptn",
-                "../sample_circuits/c17.ckt",
+                "./patterns/c17.ptn",
+                "./sample_circuits/c17.ckt",
                 "-fault 16GAT g4 GO SA0"
             ],
             "stopAtEntry": false,

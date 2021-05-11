@@ -227,13 +227,15 @@ void ATPG::input(const string &infile) {
 
   file.close();
   create_structure();
-  fprintf(stdout, "\n");
-  fprintf(stdout, "#Circuit Summary:\n");
-  fprintf(stdout, "#---------------\n");
-  fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
-  fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
-  fprintf(stdout, "#number of gates = %d\n", ncktnode);
-  fprintf(stdout, "#number of wires = %d\n", ncktwire);
+  if(!get_genFailLog_only()){
+    fprintf(stdout, "\n");
+    fprintf(stdout, "#Circuit Summary:\n");
+    fprintf(stdout, "#---------------\n");
+    fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
+    fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
+    fprintf(stdout, "#number of gates = %d\n", ncktnode);
+    fprintf(stdout, "#number of wires = %d\n", ncktwire);
+  }
   if (debug) display_circuit();
   //display_circuit();
 }/* end of input */

@@ -85,7 +85,7 @@ void ATPG::generate_genFailLog_list() {
     //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I") << (f->io?9:(f->index)) << "SA" << f->fault_type << endl;
   }
 
-  fprintf(stdout, "#number of equivalent faults = %d\n", fault_num);
+//   fprintf(stdout, "#number of equivalent faults = %d\n", fault_num);
 }/* end of generate_fault_list */
 
 
@@ -187,94 +187,6 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
     }
 
 
-
-
-    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos){
-    //     f = *pos;
-    //     if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
-
-    //     if (f->fault_type != sort_wlist[f->to_swlist]->value){
-    //         if ((f->node->type == OUTPUT) ||
-    //         (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-    //             if (!(sort_wlist[f->to_swlist]->is_faulty())) {
-    //                 sort_wlist[f->to_swlist]->set_faulty();
-    //                 wlist_faulty.push_front(sort_wlist[f->to_swlist]);
-    //             }
-    //             inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
-                
-    //         } 
-    //         else {
-    //             /* if f is an gate output fault */
-    //             if (f->io == GO) {
-
-    //                 /* if this wire is not yet marked as faulty, mark the wire as faulty
-    //                 * and insert the corresponding wire to the list of faulty wires. */
-    //                 if (!(sort_wlist[f->to_swlist]->is_faulty())) {
-    //                     sort_wlist[f->to_swlist]->set_faulty();
-    //                     wlist_faulty.push_front(sort_wlist[f->to_swlist]);
-    //                 }
-
-    //                 /* add the fault to the simulated fault list and inject the fault */
-    //                 simulated_fault_list[num_of_fault] = f;
-    //                 inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
-                    
-
-    //                 /* mark the wire as having a fault injected
-    //                 * and schedule the outputs of this gate */
-    //                 sort_wlist[f->to_swlist]->set_fault_injected();
-    //                 for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
-    //                     pos_n->owire.front()->set_scheduled();
-    //                 }
-
-    //                 /* increment the number of simulated faults in this packet */
-    //                 num_of_fault++;
-    //                 /* start_wire_index keeps track of the smallest level of fault in this packet.
-    //                 * this saves simulation time.  */
-    //                 start_wire_index = min(start_wire_index, f->to_swlist);
-    //             }  // if gate output fault
-
-
-    //             else {
-
-    //                 /* if the fault is propagated, set faulty_wire equal to the faulty wire.
-    //                 * faulty_wire is the gate output of f.  */
-    //                 faulty_wire = get_faulty_wire(f, fault_type);
-    //                 if (faulty_wire != nullptr) {
-
-    //                     /* if the faulty_wire is a primary output, it is detected */
-    //                     if (faulty_wire->is_output()) {
-    //                     f->detected_time++;
-    //                     if (f->detected_time == detected_num) {
-    //                         f->detect = TRUE;
-    //                     }
-    //                     } else {
-    //                     /* if faulty_wire is not already marked as faulty, mark it as faulty
-    //                     * and add the wire to the list of faulty wires. */
-    //                     if (!(faulty_wire->is_faulty())) {
-    //                         faulty_wire->set_faulty();
-    //                         wlist_faulty.push_front(faulty_wire);
-    //                     }
-
-    //                     /* add the fault to the simulated list and inject it */
-    //                     simulated_fault_list[num_of_fault] = f;
-    //                     inject_fault_value(faulty_wire, num_of_fault, fault_type);
-
-    //                     /* mark the faulty_wire as having a fault injected
-    //                     *  and schedule the outputs of this gate */
-    //                     faulty_wire->set_fault_injected();
-    //                     for (auto pos_n : faulty_wire->onode) {
-    //                         pos_n->owire.front()->set_scheduled();
-    //                     }
-
-    //                     num_of_fault++;
-    //                     start_wire_index = min(start_wire_index, f->to_swlist);
-    //                     }
-    //                 }
-    //             }
-        
-    //     }
-    //     }
-    // }
 
 
 
