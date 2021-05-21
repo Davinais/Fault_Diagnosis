@@ -18,7 +18,7 @@ void ATPG::test() {
     int no_of_calls = 0;
 
     fptr fault_under_test = flist_undetect.front();
-
+    
     /* stuck-at fault sim mode */
     if (fsim_only) {
         fault_simulate_vectors(total_detect_num);
@@ -42,15 +42,27 @@ void ATPG::test() {
         return;
     }// if tdfsim only
 
+
+
+    ////////////////////////  final  ////////////////////////
+
     /* genFailLog_only fault sim mode */
     if (genFailLog_only) {
         genFailLog_fault_sim();
-        // transition_delay_fault_simulation(total_detect_num);
-        // in_vector_no += vectors.size();
-        // display_undetect();
-
         return;
-    }// if tdfsim only
+    }// if genFailLog only
+
+    // /* genFailLog_only fault sim mode */
+    // if (diag_only) {
+        
+    //     
+
+    //     
+    //     return;
+    // }// if genFailLog only
+
+
+    /////////////////////////////////////////////////////////
 
 
 

@@ -35,7 +35,9 @@ int main(int argc, char *argv[]) {
       vetFile = string(argv[i + 1]);
       atpg.set_tdfsim_only(true);
       i += 2;
-    }else if (strcmp(argv[i], "-genFailLog") == 0) {
+    }
+    ////////////////////////  final  ////////////////////////
+    else if (strcmp(argv[i], "-genFailLog") == 0) {
       vetFile = string(argv[i + 1]);
       atpg.set_genFailLog_only(true);
       i += 2;
@@ -48,6 +50,13 @@ int main(int argc, char *argv[]) {
       atpg.set_genFailLog_Type(string(argv[i + 4]));
       i += 5;
     }
+    else if (strcmp(argv[i], "-diag") == 0) {
+      vetFile = string(argv[i + 1]);
+      atpg.set_diag_only(true);
+      i += 2;
+    }
+    /////////////////////////////////////////////////////////
+
       // for N-detect fault simulation
     else if (strcmp(argv[i], "-ndet") == 0) {
       atpg.detected_num = atoi(argv[i + 1]);
@@ -74,7 +83,14 @@ int main(int argc, char *argv[]) {
   if (inpFile.empty()) { usage(); }
 
 /* read in and parse the input file */
-  atpg.input(inpFile); // input.cpp
+  if(inpFile.compare(inpFile.size()-7,7,"failLog") != 0)  atpg.input(inpFile); // input.cpp
+  else {    // parse in faillog
+    fstream in;
+    in.open(inpFile, ios::in);
+    atpg.parse_diag_log(in);     
+  }
+
+
 
 /* if vector file is provided, read it */
   if (!vetFile.empty()) { atpg.read_vectors(vetFile); }
@@ -89,14 +105,22 @@ int main(int argc, char *argv[]) {
   atpg.create_dummy_gate(); //init_flist.cpp
   if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for creating dummy nodes");
 
-  if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only())) atpg.generate_fault_list(); //init_flist.cpp
-  else if(!atpg.get_tdfsim_only()) atpg.generate_genFailLog_list();
-  else atpg.generate_tdfault_list();
-  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for generating fault list");
+  if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only()) && (!atpg.get_diag_only())) atpg.generate_fault_list(); //init_flist.cpp
+  else if(!atpg.get_tdfsim_only() && (!atpg.get_diag_only())) atpg.generate_genFailLog_list(); //defined in genFailLog.cpp
+  else if(!atpg.get_diag_only()) atpg.generate_tdfault_list();
 
-  atpg.test(); //defined in atpg.cpp
-  if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only()))atpg.compute_fault_coverage(); //init_flist.cpp
-  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for test pattern generation");
+
+  if(!atpg.get_genFailLog_only() && (!atpg.get_diag_only()))atpg.timer(stdout, "for generating fault list");
+
+  if (!atpg.get_diag_only()) atpg.test(); //defined in atpg.cpp
+  else {  
+    // TODO : diagnosis
+    ;
+    // END TODO
+  }
+
+  if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only()) && (!atpg.get_diag_only()))atpg.compute_fault_coverage(); //init_flist.cpp
+  if(!atpg.get_genFailLog_only() && (!atpg.get_diag_only()))atpg.timer(stdout, "for test pattern generation");
   exit(EXIT_SUCCESS);
 }
 
@@ -124,6 +148,9 @@ void ATPG::set_tdfsim_only(const bool &b) {
 
 void ATPG::set_genFailLog_only(const bool &b) {
   this->genFailLog_only = b;
+}
+void ATPG::set_diag_only(const bool &b) {
+  this->diag_only = b;
 }
 
 void ATPG::set_total_attempt_num(const int &i) {

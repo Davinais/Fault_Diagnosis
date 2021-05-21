@@ -19,6 +19,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
+#include <map>
+#include<unordered_set>
+
 
 #define HASHSIZE 3911
 
@@ -69,6 +73,7 @@ class ATPG {
   void set_fsim_only(const bool &);
   void set_tdfsim_only(const bool &);
   void set_genFailLog_only(const bool &);
+  void set_diag_only(const bool &);
   void read_vectors(const string &);
   void set_total_attempt_num(const int &);
   void set_backtrack_limit(const int &);
@@ -94,9 +99,9 @@ class ATPG {
   int num_of_tdf_fault{};
   int detected_num{};
   bool get_tdfsim_only() { return tdfsim_only; }
+  
 
-
-
+  ////////////////////////  final  ////////////////////////
   void genFailLog_fault_sim();
   void genFailLog_sim_a_vector(const string &, int &);
   void set_genFailLog_Wire(string s){
@@ -114,7 +119,10 @@ class ATPG {
   bool get_genFailLog_only() { return genFailLog_only; }
   void generate_genFailLog_list();
   void print_name(string s);
-  
+
+  bool get_diag_only() { return diag_only; }
+  void parse_diag_log(fstream& in);
+  /////////////////////////////////////////////////////////
 
   /* defined in atpg.cpp */
   void test();
@@ -157,7 +165,14 @@ class ATPG {
   bool fsim_only;                      /* flag to indicate fault simulation only */
   bool tdfsim_only;                    /* flag to indicate tdfault simulation only */
 
-  bool genFailLog_only;                    /* flag to indicate genFailLog simulation only */
+  ////////////////////////  final  ////////////////////////
+  bool genFailLog_only;                /* flag to indicate genFailLog simulation only */
+  bool diag_only;                      /* flag to indicate diag only */
+  vector<string> fail_vector;          /* record all patterns show in faillog*/
+  map<string, vector<pair<string,bool>>> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
+  unordered_set<string> all_fail_opGate; /* record all output failling gate*/
+  /////////////////////////////////////////////////////////
+
   vector<string> fault_Wire_Pos;
   vector<string> fault_Gate_Pos;
   vector<string> fault_IO;

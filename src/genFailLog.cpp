@@ -208,7 +208,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
             cout << "expect " ;
             if ((w->wire_value1 & Mask[0]) == 3) cout << "H, observe ";
             else cout << "L, observe ";
-            if ((w->wire_value2 & Mask[0]) == 3) cout << "H      #   T" << vec << "'" << endl;
+            if ((w->wire_value2 & Mask[0]) == 3) cout << "H      #   T'" << vec << "'" << endl;
             else cout << "L      #   T" << vec << "'" << endl;
             // cout << (w->wire_value1 & Mask[0]) <<", " << (w->wire_value2 & Mask[0]) << endl;
         }
@@ -219,6 +219,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
 
 
 void ATPG::print_name(string s){
+
     for (auto it=s.cbegin(); it!=s.cend(); ++it){
         if (*it == '('){
             cout << "   ";
@@ -227,4 +228,37 @@ void ATPG::print_name(string s){
         cout << *it;
     }
     
+}
+
+
+void ATPG::parse_diag_log(fstream& in){
+
+    string gateName, observed, pattern, _;
+    bool ob;
+
+    while(1){
+        in >> _ >> _ >> gateName >> _ >> _ >> _ >> observed >> _ >> pattern;
+        if (in.eof() == true)
+            break;
+
+        string pure_pattern = pattern.substr (2, pattern.length()-3);
+        if(observed == "H") ob = 1;
+        else ob = 0;
+        pair <string, bool> p;
+        p.first = gateName;
+        p.second = ob;
+
+        fail_vector.push_back(pure_pattern);
+        pattern_to_data[pure_pattern].push_back(p);
+
+        all_fail_opGate.insert(gateName);
+        // cout << "@@" << endl;
+    }
+
+    // unordered_set<string>::iterator h;
+    // for( h=all_fail_opGate.begin();h!=all_fail_opGate.end();h++){
+    //     cout << *h << endl;
+    // }
+
+    return;
 }
