@@ -151,6 +151,15 @@ void ATPG::display_undetect() {
         file << "s-a-1\n";
         break;
     }
+    file <<"fault I/O = ";
+    switch (f->io) {
+      case GI:
+        file << "GI\n";
+        break;
+      case GO:
+        file << "GO\n";
+        break;
+    }
     file << "detection flag =";
     switch (f->detect) {
       case FALSE:
@@ -198,6 +207,7 @@ void ATPG::display_fault(fptr f) {
       fprintf(stdout, "s-a-1\n");
       break;
   }
+
   fprintf(stdout, "detection flag =");
   switch (f->detect) {
     case FALSE:
@@ -212,3 +222,74 @@ void ATPG::display_fault(fptr f) {
   }
   fprintf(stdout, "\n");
 }/* end of display_fault */
+
+
+void ATPG::write_diagnosis_report() {
+  fptr f;
+  wptr w;
+  int eqpos;
+  double score;
+  int fnum = 0;
+  string dfile = "../Diag_Report/" + diagname + ".rpt";
+  cout<<"The diagnosis report is generated at "<<dfile<<endl;
+  ofstream file(dfile, std::ifstream::out | std::ofstream::app); // open the input vectors' file
+  if (!file) { // if the ofstream obj does not exist, fail to open the file
+    fprintf(stderr, "File %s could not be opened\n", dfile.c_str());
+    cout<<"The outputfile should be "<<dfile<<endl;
+    cout<<"Please check if the directory already exists, if not, create it...\n";
+    exit(EXIT_FAILURE);
+  }
+
+  file<<"#Circuit Summary:\n";
+  file<<"#---------------\n";
+  file<<"#number of inputs = "<<cktin.size()<<"\n";
+  file<<"#number of outputs = "<<cktout.size()<<"\n";
+  file<<"#number of gates = "<<ncktnode<<"\n";
+  file<<"#number of wires = "<<ncktwire<<"\n";
+  file<<"#number of vectors = "<<vectors.size()<<"\n";
+  file<<"#number of failing outputs = "<<pattern_to_data.size()<<"\n\n";
+  file<<"Ranked suspect faults\n";
+  
+  for (auto pos = result.cbegin(); pos != result.cend(); ++pos) {
+    fnum++;
+    f = *pos;
+    if (f->score < 10) break;
+    w = sort_wlist[f->to_swlist];
+    file<<"No."<<fnum<<"  "<<w->name.substr(0,w->name.find("("))<<" ";
+    file<<f->node->name<<" ";
+    if (f->io) file<<"GO ";
+    else file<<"GI ";
+    if (f->fault_type) file<<"SA1,  ";
+    else file<<"SA0,  ";
+    file<<"TFSF="<<f->TFSF<<", TPSF="<<f->TPSF<<", TFSP="<<f->TFSP<<", score=";
+    //score = static_cast<double>(f->TFSF) / static_cast<double>(f->TFSF + f->TPSF + f->TFSP);
+    if (f->eqv_fault_num > 1) {
+      file<<setprecision(5)<<f->score<<" [equivalent faults: ";
+      //for (auto pos = f->eqv_fault_list.begin(); pos != f->eqv_fault_list.end() ++pos) {
+      eqpos = 1;
+      cout<<f->eqv_fault_num<<"\n\n\n";
+      for (auto ef : f->eqv_fault_list) {
+        w = sort_wlist[ef->to_swlist];
+        file<<w->name.substr(0,w->name.find("("))<<" "<<ef->node->name<<" ";
+        if (ef->io) file<<"GO ";
+        else file<<"GI ";
+        if (ef->fault_type) file<<"SA1";
+        else file<<"SA0";
+        if (eqpos == f->eqv_fault_num) {
+          file<<"]\n";
+        } else {
+          file<<" , ";
+        }
+        eqpos++;
+      }
+    } else {
+      file<<setprecision(5)<<f->score<<"\n";
+    }
+  }
+
+  double t_meas = (double) clock();
+  file<<"#run time="<<(t_meas - StartTime) / CLOCKS_PER_SEC<<" s\n";
+
+}
+
+

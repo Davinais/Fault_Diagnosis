@@ -156,6 +156,7 @@ ATPG::WIRE::WIRE() {
 ATPG::NODE::NODE() {
     this->type = 0;
     this->marked = false;
+    this->curfo = 0;
 }
 
 /* constructor of FAULT */
@@ -169,5 +170,14 @@ ATPG::FAULT::FAULT() {
     this->eqv_fault_num = 0;
     this->to_swlist = 0;
     this->fault_no = 0;
+    this->fpo_num = 0;
+    this->TFSF = 0;
+    this->TPSF = 0;
+    this->TFSP = 0;
 }
-
+ATPG::EQV_FAULT::EQV_FAULT(nptr _node, short _io, short _fault_type, int _to_swlist) {
+    node = _node;
+    io = _io;
+    fault_type = _fault_type;
+    to_swlist = _to_swlist;
+}

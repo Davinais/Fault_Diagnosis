@@ -218,8 +218,10 @@ void ATPG::input(const string &infile) {
     }
   }
 
-  int ncktnode = 0;
-  int ncktwire = 0;
+  //int ncktnode = 0;
+  //int ncktwire = 0;
+  ncktnode = 0;
+  ncktwire = 0;
   for (int i = 0; i < HASHSIZE; i++) {
     ncktnode += distance(hash_nlist[i].begin(), hash_nlist[i].end());
     ncktwire += distance(hash_wlist[i].begin(), hash_wlist[i].end());

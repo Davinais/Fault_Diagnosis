@@ -10,7 +10,7 @@
 void usage();
 
 int main(int argc, char *argv[]) {
-  string inpFile, vetFile, faultin;
+  string inpFile, vetFile, faultin, flogFile;
   int i, j;
   ATPG atpg; // create an ATPG obj, named atpg
 
@@ -74,21 +74,44 @@ int main(int argc, char *argv[]) {
       i++;
     } 
     else {
-      inpFile = string(argv[i]);
+      string temp = string(argv[i]);
       i++;
+      if (temp.compare(temp.size()-3,3,"ckt") == 0) inpFile = temp;
+      if (temp.compare(temp.size()-7,7,"failLog") == 0) { 
+        flogFile = temp;
+        atpg.diagname = temp.substr(temp.find("FailLog/")+8,temp.find(".failLog"));
+      }
     }
+
   }
 
-/* an input file was not specified, so describe the proper usage */
+  /* an input file was not specified, so describe the proper usage */
   if (inpFile.empty()) { usage(); }
-
-/* read in and parse the input file */
-  if(inpFile.compare(inpFile.size()-7,7,"failLog") != 0)  atpg.input(inpFile); // input.cpp
-  else {    // parse in faillog
+  else { 
     fstream in;
     in.open(inpFile, ios::in);
-    atpg.parse_diag_log(in);     
+    atpg.input(inpFile); // input.cpp
   }
+  /* read in and parse the input file */
+  if (!flogFile.empty()) {
+    fstream in;
+    in.open(flogFile, ios::in);
+    atpg.parse_diag_log(in);   
+  }
+    // if(inpFile.compare(inpFile.size()-3,3,"ckt") == 0) {
+    //   fstream in;
+    //   in.open(inpFile, ios::in);
+    //   atpg.input(inpFile); // input.cpp
+    //         cout<<inpFile;
+    //     cout<<"xxxxx";
+    // } 
+    // else if (inpFile.compare(inpFile.size()-7,7,"failLog") == 0) {    // parse in faillog
+    //   fstream in;
+    //   in.open(inpFile, ios::in);
+    //   atpg.parse_diag_log(in);   
+    //         cout<<inpFile;
+    //     cout<<"======================";  
+    // }
 
 
 
@@ -115,7 +138,7 @@ int main(int argc, char *argv[]) {
   if (!atpg.get_diag_only()) atpg.test(); //defined in atpg.cpp
   else {  
     // TODO : diagnosis
-    ;
+    atpg.diagnosis();
     // END TODO
   }
 

@@ -18,11 +18,11 @@ void ATPG::generate_fault_list() {
   nptr n;
   fptr_s f;
   unordered_map<wptr, int> num_of_eqv_sa0, num_of_eqv_sa1;
+
   /* walk through every wire in the circuit*/
   for (auto pos : sort_wlist) {
     w = pos;
     n = w->inode.front();
-
     /* for each gate, create a gate output stuck-at zero (SA0) fault */
     f = move(fptr_s(new(nothrow) FAULT));
     if (f == nullptr) error("No more room!");
