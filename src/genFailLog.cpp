@@ -82,7 +82,9 @@ void ATPG::generate_genFailLog_list() {
   for (fptr f: flist_undetect) {
     f->fault_no = fault_num;
     fault_num++;
-    //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I") << (f->io?9:(f->index)) << "SA" << f->fault_type << endl;
+    //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I") << endl;
+
+    //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I")<<" " << "SA" << f->fault_type << endl;
   }
 
 //   fprintf(stdout, "#number of equivalent faults = %d\n", fault_num);
@@ -108,7 +110,6 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
     int fault_type;
     int i, start_wire_index, nckt;
     int num_of_fault;
-
     num_of_fault = 0; // counts the number of faults in a packet
 
     /* num_of_current_detect is used to keep track of the number of undetected faults
@@ -166,9 +167,12 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
     for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos){
        
         f = *pos;
+        //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I")<<" " << "SA" << f->fault_type << endl;
+        //if (f->fault_type != sort_wlist[f->to_swlist]->value) cout<<"Not activate!!!\n";
         if (!(sort_wlist[f->to_swlist]->is_faulty())) {
             sort_wlist[f->to_swlist]->set_faulty();
-            wlist_faulty.push_front(sort_wlist[f->to_swlist]);
+            // doesn't be used?!
+            //wlist_faulty.push_front(sort_wlist[f->to_swlist]);
             // cout << "wojgwpr" << endl;
         }
         inject_fault_value(sort_wlist[f->to_swlist], 0, f->fault_type);
@@ -209,7 +213,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
             if ((w->wire_value1 & Mask[0]) == 3) cout << "H, observe ";
             else cout << "L, observe ";
             if ((w->wire_value2 & Mask[0]) == 3) cout << "H      #   T'" << vec << "'" << endl;
-            else cout << "L      #   T" << vec << "'" << endl;
+            else cout << "L      #   T'" << vec << "'" << endl;
             // cout << (w->wire_value1 & Mask[0]) <<", " << (w->wire_value2 & Mask[0]) << endl;
         }
     } /* event evaluations end here */
@@ -234,24 +238,30 @@ void ATPG::print_name(string s){
 void ATPG::parse_diag_log(fstream& in){
 
     string gateName, observed, pattern, _;
+    string pure_pattern;
     bool ob;
 
     while(1){
         in >> _ >> _ >> gateName >> _ >> _ >> _ >> observed >> _ >> pattern;
         if (in.eof() == true)
             break;
-
-        string pure_pattern = pattern.substr (2, pattern.length()-3);
+        string temp = pattern.substr (2, pattern.length()-3);
+        if (temp.compare(0,temp.size(), pure_pattern) != 0) {
+            pure_pattern = temp;
+            //cout<<pure_pattern;
+            fail_vector.push_back(pure_pattern);
+        }
         if(observed == "H") ob = 1;
         else ob = 0;
-        pair <string, bool> p;
-        p.first = gateName;
-        p.second = ob;
+        //pair <string, bool> p;
+        //p.first = gateName;
+        //p.second = ob;
 
-        fail_vector.push_back(pure_pattern);
-        pattern_to_data[pure_pattern].push_back(p);
-
+        //pattern_to_data[pure_pattern].push_back(p);
+        //cout<<pure_pattern + gateName<<endl;
+        pattern_to_data.insert({pure_pattern + gateName,ob});
         all_fail_opGate.insert(gateName);
+        total_TF++;
         // cout << "@@" << endl;
     }
 

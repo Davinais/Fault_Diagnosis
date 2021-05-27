@@ -1,8 +1,8 @@
 #
 
-CFLAGS = -std=c++11 -g  
+CFLAGS = -std=c++11 -g -lm 
 
-FILES = atpg.o main.o input.o level.o sim.o podem.o init_flist.o faultsim.o display.o tdfsim.o genFailLog.o
+FILES = atpg.o main.o input.o level.o sim.o podem.o init_flist.o faultsim.o display.o tdfsim.o genFailLog.o diagnosis.o
 
 all : $(FILES)
 	g++ $(CFLAGS) $(FILES) -lm -o atpg
@@ -28,5 +28,7 @@ tdfsim.o : atpg.h tdfsim.cpp
 	g++ $(CFLAGS) -c tdfsim.cpp
 genFailLog.o : atpg.h genFailLog.cpp
 	g++ $(CFLAGS) -c genFailLog.cpp
+diagnosis.o : atpg.h diagnosis.cpp
+	g++ $(CFLAGS) -c diagnosis.cpp
 clean:
 	rm *.o atpg	
