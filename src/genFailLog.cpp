@@ -84,7 +84,7 @@ void ATPG::generate_genFailLog_list() {
     fault_num++;
     //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I") << endl;
 
-    //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I")<<" " << "SA" << f->fault_type << endl;
+    // cout  << f->node->name << ":" << (f->io?"O":"I")<<" " << "SA" << f->fault_type << endl;
   }
 
 //   fprintf(stdout, "#number of equivalent faults = %d\n", fault_num);
@@ -169,6 +169,9 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
         f = *pos;
         //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I")<<" " << "SA" << f->fault_type << endl;
         //if (f->fault_type != sort_wlist[f->to_swlist]->value) cout<<"Not activate!!!\n";
+
+        if (f->fault_type == sort_wlist[f->to_swlist]->value) continue;
+
         if (!(sort_wlist[f->to_swlist]->is_faulty())) {
             sort_wlist[f->to_swlist]->set_faulty();
             // doesn't be used?!
@@ -181,10 +184,14 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
         if ((f->node->type == OUTPUT) || (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {;}
         else {
             
-            for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
-                pos_n->owire.front()->set_scheduled();
+            if (f->io == 0){ //GI
+                f->node->owire.front()->set_scheduled();
             }
-            
+            else{ //GO
+                for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
+                    pos_n->owire.front()->set_scheduled();
+                }
+            }
             
         }
 
