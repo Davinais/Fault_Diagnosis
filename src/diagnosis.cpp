@@ -29,12 +29,18 @@ void ATPG::diagnosis() {
     // }
     //display_undetect();
     //findEQV();
-    for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-        f = *pos;
-        cout<<f->fault_no<<" , ";
-    }
-    cout<<endl;
+    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+    //     f = *pos;
+    //     cout<<f->fault_no<<" ";
+    // }
+    // cout<<endl;
     build_partial_dic();
+    cout<<"After diagnosis:\n";
+    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+    //     f = *pos;
+    //     cout<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP;
+    //     cout<<endl;
+    // }
     findEQV();
     evaluateResult();
     write_diagnosis_report();
@@ -45,6 +51,8 @@ void ATPG::evaluateResult() {
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     f = *pos;
     f->TFSP = total_TF - f->TFSF;
+    cout<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP;
+    cout<<endl;
     f->score = static_cast<double>(f->TFSF) / static_cast<double>(f->TFSF + f->TPSF + f->TFSP) * 100.0;
     result.push_back(f);
   }
@@ -56,19 +64,17 @@ void ATPG::evaluateResult() {
 void ATPG::build_partial_dic() {
     fptr f;
     structural_backtrace();
-    for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-        f = *pos;
-        cout<<f->fault_no<<" , ";
-    }
-    cout<<endl;
+    // cout<<"After backtrace: ";
+    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+    //     f = *pos;
+    //     cout<<f->fault_no<<" ";
+    // }
+    //cout<<endl;
     for (auto failvec : fail_vector) {
         //cout<<failvec<<"\n";
         fault_sim_a_failvector(failvec);
     }
-    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-    //     f = *pos;
-    //     cout<<"Current fault: "<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF: "<<f->TPSF<<" TFSP: "<<f->TFSP<<endl;
-    // }
+
 
 
 }
@@ -196,19 +202,16 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     //int fault_detected[num_of_faults_in_parallel] = {0}; //for n-det
     f = *pos;
+    f->detect = false;
     if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
 
     /* consider only active (aka. excited) fault
      * (sa1 with correct output of 0 or sa0 with correct output of 1) */
-    // if (f->fault_no == 513) {
-    //     cout<<"Target fault!1111!!\n";
-    //     cout<<sort_wlist[f->to_swlist]->value;
-    //     cout<<f->fault_type;
+
+    // if (f->fault_no == 5172) {
+    //     cout<<f->node->name<<" "<<f->fault_type<<endl;
+    //     cout<<sort_wlist[f->to_swlist]->value<<endl;
     // }
-    if (f->fault_no == 12) {
-        cout<<f->node->name<<" "<<f->fault_type<<endl;
-        cout<<sort_wlist[f->to_swlist]->value<<endl;
-    }
     if (f->fault_type != sort_wlist[f->to_swlist]->value) {
 
       /* if f is a primary output or is directly connected to an primary output
@@ -217,8 +220,20 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
         //f->detected_time++;
        // if (f->detected_time == detected_num) {
-          f->detect = TRUE;
-        //}
+        f->detect = TRUE;
+
+        string cur_wire;
+        w = sort_wlist[f->to_swlist];
+        cur_wire = w->name.substr(0,w->name.find("("));
+        auto it = pattern_to_data.find(vec+cur_wire);
+        //cout<<vec+cur_wire<<endl;
+        if (it != pattern_to_data.end()) {
+            //cout<<cur_wire;
+            f->TFSF++;
+        }  else {
+            f->TPSF++;
+        }
+
       } else {
 
         /* if f is an gate output fault */
@@ -228,10 +243,7 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
            * and insert the corresponding wire to the list of faulty wires. */
           if (!(sort_wlist[f->to_swlist]->is_faulty())) {
             sort_wlist[f->to_swlist]->set_faulty();
-            //wlist_faulty.push_front(sort_wlist[f->to_swlist]);
-            // only need faulty output
-            if (sort_wlist[f->to_swlist]->is_output())
-                wlist_faulty.push_front(sort_wlist[f->to_swlist]);
+            wlist_faulty.push_front(sort_wlist[f->to_swlist]);
           }
 
           /* add the fault to the simulated fault list and inject the fault */
@@ -266,16 +278,28 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
               //if (f->detected_time == detected_num) {
                 f->detect = TRUE;
               //}
+                string cur_wire;
+                w = sort_wlist[f->to_swlist];
+                cur_wire = w->name.substr(0,w->name.find("("));
+                auto it = pattern_to_data.find(vec+cur_wire);
+                //cout<<vec+cur_wire<<endl;
+                if (it != pattern_to_data.end()) {
+                    //cout<<cur_wire;
+                    f->TFSF++;
+                }  else {
+                    f->TPSF++;
+                }
+
             } else {
               /* if faulty_wire is not already marked as faulty, mark it as faulty
                * and add the wire to the list of faulty wires. */
               if (!(faulty_wire->is_faulty())) {
                 faulty_wire->set_faulty();
-                if (faulty_wire->is_output())
-                    wlist_faulty.push_front(faulty_wire);
+                wlist_faulty.push_front(faulty_wire);
               }
 
               /* add the fault to the simulated list and inject it */
+          
               simulated_fault_list[num_of_fault] = f;
               inject_fault_value(faulty_wire, num_of_fault, fault_type);
 
@@ -310,7 +334,7 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
       for (i = start_wire_index; i < nckt; i++) {
         if (sort_wlist[i]->is_scheduled()) {
           sort_wlist[i]->remove_scheduled();
-          fault_sim_evaluate_diag(sort_wlist[i]);
+          fault_sim_evaluate(sort_wlist[i]);
         }
       } /* event evaluations end here */
 
@@ -320,24 +344,13 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
         *
         * IMPORTANT! remember to reset the wires' faulty values back to fault-free values.
       */
-      //if (f->fault_no == 513) cout<<"Target fault!!!\n";
 
       while (!wlist_faulty.empty()) {
-        bool SF = false, TF = false; 
-        string cur_wire;
         w = wlist_faulty.front();
-        cur_wire = w->name.substr(0,w->name.find("("));
         wlist_faulty.pop_front();
         w->remove_faulty();
         w->remove_fault_injected();
         w->set_fault_free();
-        auto it = pattern_to_data.find(vec+cur_wire);
-        //cout<<vec+cur_wire<<endl;
-        if (it != pattern_to_data.end()) {
-            //cout<<cur_wire;
-            TF = true;
-        } 
-
         /* TODO */
        
         /*
@@ -346,10 +359,24 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
          * Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
          * After that, don't forget to reset faulty values (wire_value2) to their fault-free values (wire_value1).
          */
-        //if (w->is_output()) { // if primary output
+        if (w->is_output()) { // if primary output
+            bool SF = false, TF = false; 
+            string cur_wire;
+            cur_wire = w->name.substr(0,w->name.find("("));
+            auto it = pattern_to_data.find(vec+cur_wire);
+            //cout<<vec+cur_wire<<endl;
+            if (it != pattern_to_data.end()) {
+                //cout<<cur_wire;
+                TF = true;
+            } 
+
           for (i = 0; i < num_of_fault; i++) { // check every undetected fault
             SF = false;
-            //if (!(simulated_fault_list[i]->detect)) {
+            // check the value of good value and faulty value
+            if (simulated_fault_list[i]->fault_no == 5172) {
+                cout<<"Good: "<<(w->wire_value1& Mask[i])<<" Faulty: "<<(w->wire_value2& Mask[i])<<endl;
+            }
+            if (!(simulated_fault_list[i]->detect)) {
               if ((w->wire_value2 & Mask[i]) ^    // if value1 != value2
                   (w->wire_value1 & Mask[i])) {
                 if (((w->wire_value2 & Mask[i]) ^ Unknown[i]) &&  // and not unknowns
@@ -359,13 +386,13 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
                   //fault_detected[i] = 1;// then the fault is detected
                 }
               }
-            //}
+            }
             if (TF && SF) simulated_fault_list[i]->TFSF++;
             //else if (TF && !SF) simulated_fault_list[i]->TFSP++;
             else if (!TF && SF) simulated_fault_list[i]->TPSF++;
 
           }
-        //}
+        }
         w->wire_value2 = w->wire_value1;  // reset to fault-free values
         /* end TODO*/
       } // pop out all faulty wires
@@ -390,7 +417,12 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
         if (fptr_ele->detect == false) {
           //num_of_current_detect += fptr_ele->eqv_fault_num;
           return true;
-        } else {
+        }  
+        // it is correct if we uncomment this; if comment this, it will be incorrect
+        // else if (fptr_ele->TFSF == 0) {
+        //     return true;
+        // } 
+        else {
           return false;
         }
       });
@@ -461,8 +493,7 @@ void ATPG::fault_sim_evaluate_diag(const wptr w) {
     /* insert wire w into the faulty_wire list */
     if (!(w->is_faulty())) {
       w->set_faulty();
-      if (w->is_output())
-        wlist_faulty.push_front(w);
+      wlist_faulty.push_front(w);
     }
 
     /* schedule new events */

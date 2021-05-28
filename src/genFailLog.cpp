@@ -175,7 +175,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
         if (!(sort_wlist[f->to_swlist]->is_faulty())) {
             sort_wlist[f->to_swlist]->set_faulty();
             // doesn't be used?!
-            //wlist_faulty.push_front(sort_wlist[f->to_swlist]);
+            wlist_faulty.push_front(sort_wlist[f->to_swlist]);
             // cout << "wojgwpr" << endl;
         }
         inject_fault_value(sort_wlist[f->to_swlist], 0, f->fault_type);
@@ -212,7 +212,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
 
     for (i = 0; i < cktout.size(); i++) {
         wptr w = cktout[i];
-        // cout << (w->wire_value1 & Mask[0]) <<", " << (w->wire_value2 & Mask[0]) << endl;
+        //cout << (w->wire_value1 & Mask[0]) <<", " << (w->wire_value2 & Mask[0]) << endl;
         if((w->wire_value1 & Mask[0]) != (w->wire_value2 & Mask[0])){
             cout << "vector [" << number << "]  " ;
             print_name(w->name);
@@ -221,7 +221,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
             else cout << "L, observe ";
             if ((w->wire_value2 & Mask[0]) == 3) cout << "H      #   T'" << vec << "'" << endl;
             else cout << "L      #   T'" << vec << "'" << endl;
-            // cout << (w->wire_value1 & Mask[0]) <<", " << (w->wire_value2 & Mask[0]) << endl;
+            //cout << (w->wire_value1 & Mask[0]) <<", " << (w->wire_value2 & Mask[0]) << endl;
         }
     } /* event evaluations end here */
  

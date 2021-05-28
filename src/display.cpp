@@ -267,7 +267,7 @@ void ATPG::write_diagnosis_report() {
       file<<setprecision(5)<<f->score<<" [equivalent faults: ";
       //for (auto pos = f->eqv_fault_list.begin(); pos != f->eqv_fault_list.end() ++pos) {
       eqpos = 1;
-      cout<<f->eqv_fault_num<<"\n\n\n";
+      //cout<<f->eqv_fault_num<<"\n\n\n";
       for (auto ef : f->eqv_fault_list) {
         w = sort_wlist[ef->to_swlist];
         file<<w->name.substr(0,w->name.find("("))<<" "<<ef->node->name<<" ";
