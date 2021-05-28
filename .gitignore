@@ -3,8 +3,13 @@ PA3.doc
 
 # Reports
 failLog
+*.failLog
+*.rpt
 *.log
 *.uf
+
+# Script file
+src/*.sh
 
 # Temp files
 .nfs*
