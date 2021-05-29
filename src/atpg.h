@@ -124,8 +124,8 @@ class ATPG {
 
   bool get_diag_only() { return diag_only; }
   void parse_diag_log(fstream& in);
-
   void diagnosis();
+  void SSF_diagnosis();
 
   string diagname;                     /* for diagnosis report naming */
 
@@ -179,7 +179,8 @@ class ATPG {
   ////////////////////////  final  ////////////////////////
   bool genFailLog_only;                /* flag to indicate genFailLog simulation only */
   bool diag_only;                      /* flag to indicate diag only */
-  vector<string> fail_vector;          /* record all patterns show in faillog*/
+  // vector<string> fail_vector;          /* record all patterns show in faillog*/
+  vector<int> fail_vec_no;             /* record the ID of failing vector
   //map<string, vector<pair<string,bool>>> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   map<string, bool> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   unordered_set<string> all_fail_opGate; /* record all output failling gate*/
@@ -209,7 +210,7 @@ class ATPG {
 
   // build partial dictionary
   int _curfo;
-  void build_partial_dic();
+  void find_suspects();
   void structural_backtrace();
   void trace_cone(wptr w);
 
