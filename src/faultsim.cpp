@@ -268,7 +268,7 @@ void ATPG::fault_sim_evaluate(const wptr w) {
   unsigned int new_value;
   nptr n;
   int i, nin, nout;
-  if (w->is_faulty()) return;
+  //if (w->is_faulty()) return;
   n = w->inode.front();
   nin = n->iwire.size();
   switch (n->type) {

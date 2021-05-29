@@ -18,11 +18,18 @@ bool ATPG::compareScore(fptr f1, fptr f2) {
 }
 
 void ATPG::diagnosis() {
+    SSF_diagnosis();
+}
+
+
+
+
+void ATPG::SSF_diagnosis() {
     //filename = "c17";
     fptr f;
     generate_fault_list();
     build_mapping(false);
-
+    cout<<"finish build\n";
     // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     //     f = *pos;
     //     cout<<"Current fault: "<<f->fault_no<<" EQVF: "<<f->eqv_fault_num<<endl;
@@ -34,7 +41,8 @@ void ATPG::diagnosis() {
     //     cout<<f->fault_no<<" ";
     // }
     // cout<<endl;
-    build_partial_dic();
+
+    find_suspects();
     cout<<"After diagnosis:\n";
     // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     //     f = *pos;
@@ -61,20 +69,34 @@ void ATPG::evaluateResult() {
 
 
 
-void ATPG::build_partial_dic() {
+void ATPG::find_suspects() {
     fptr f;
+    int cur_id = 0, num = 0;
     structural_backtrace();
-    // cout<<"After backtrace: ";
+    cout<<"After backtrace: ";
     // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     //     f = *pos;
     //     cout<<f->fault_no<<" ";
     // }
     //cout<<endl;
-    for (auto failvec : fail_vector) {
-        //cout<<failvec<<"\n";
-        fault_sim_a_failvector(failvec);
+    // check the TFSF & TPSF in the faling pattern
+    for (auto fail_no : fail_vec_no) {
+        fault_sim_a_failvector(vectors[fail_no]);
     }
-
+    // reset f->detect
+    for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+        f = *pos;
+        f->detect = FALSE;
+    }
+    // check TPSF in the other pattern, improve resolution by removing suspects
+    for (int i = vectors.size() - 1; i >= 0; i--) {
+        if (i == fail_vec_no[cur_id]) {
+            cur_id++;
+            continue;
+        } else {
+            fault_sim_a_vector(vectors[i], num);
+        }
+    }
 
 
 }
@@ -131,7 +153,12 @@ void ATPG::build_mapping(bool show) {
     for (int i = 0; i < cktout.size(); i++) {
         size_t pos = cktout[i]->name.find("(");
         string key = cktout[i]->name.substr(0,pos);
+        cout<<key<<" , "<<cktout[i]->name<<endl;
         name_to_po.insert({key,cktout[i]});
+    }
+    cout<<"The content:\n";
+    for (auto kk : name_to_po) {
+        cout<<kk.first<<" . "<<kk.second->name<<endl;
     }
 
 }
@@ -202,7 +229,7 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     //int fault_detected[num_of_faults_in_parallel] = {0}; //for n-det
     f = *pos;
-    f->detect = false;
+    f->detect = FALSE;
     if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
 
     /* consider only active (aka. excited) fault
@@ -221,7 +248,6 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
         //f->detected_time++;
        // if (f->detected_time == detected_num) {
         f->detect = TRUE;
-
         string cur_wire;
         w = sort_wlist[f->to_swlist];
         cur_wire = w->name.substr(0,w->name.find("("));
@@ -282,9 +308,7 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
                 w = sort_wlist[f->to_swlist];
                 cur_wire = w->name.substr(0,w->name.find("("));
                 auto it = pattern_to_data.find(vec+cur_wire);
-                //cout<<vec+cur_wire<<endl;
                 if (it != pattern_to_data.end()) {
-                    //cout<<cur_wire;
                     f->TFSF++;
                 }  else {
                     f->TPSF++;
@@ -373,10 +397,10 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
           for (i = 0; i < num_of_fault; i++) { // check every undetected fault
             SF = false;
             // check the value of good value and faulty value
-            if (simulated_fault_list[i]->fault_no == 5172) {
-                cout<<"Good: "<<(w->wire_value1& Mask[i])<<" Faulty: "<<(w->wire_value2& Mask[i])<<endl;
-            }
-            if (!(simulated_fault_list[i]->detect)) {
+            // if (simulated_fault_list[i]->fault_no == 14) {
+            //     cout<<"Good: "<<(w->wire_value1& Mask[i])<<" Faulty: "<<(w->wire_value2& Mask[i])<<endl;
+            // }
+            //if (!(simulated_fault_list[i]->detect)) {
               if ((w->wire_value2 & Mask[i]) ^    // if value1 != value2
                   (w->wire_value1 & Mask[i])) {
                 if (((w->wire_value2 & Mask[i]) ^ Unknown[i]) &&  // and not unknowns
@@ -386,7 +410,7 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
                   //fault_detected[i] = 1;// then the fault is detected
                 }
               }
-            }
+            //}
             if (TF && SF) simulated_fault_list[i]->TFSF++;
             //else if (TF && !SF) simulated_fault_list[i]->TFSP++;
             else if (!TF && SF) simulated_fault_list[i]->TPSF++;
@@ -418,10 +442,9 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
           //num_of_current_detect += fptr_ele->eqv_fault_num;
           return true;
         }  
-        // it is correct if we uncomment this; if comment this, it will be incorrect
-        // else if (fptr_ele->TFSF == 0) {
-        //     return true;
-        // } 
+        else if (fptr_ele->TFSF == 0) {
+            return true;
+        } 
         else {
           return false;
         }
@@ -437,7 +460,7 @@ void ATPG::fault_sim_evaluate_diag(const wptr w) {
   unsigned int new_value;
   nptr n;
   int i, nin, nout;
-  if (w->is_faulty()) return;
+ // if (w->is_faulty()) return;
   n = w->inode.front();
   nin = n->iwire.size();
   switch (n->type) {
@@ -715,21 +738,24 @@ void ATPG::structural_backtrace() {
     wptr w;
     fptr f;
     int num_fpo = 0;
+    // for (auto kk : name_to_po) {
+    //     cout<<kk.first<<" . "<<kk.second->name<<endl;
+    // }
     for (auto fpo : all_fail_opGate) {
-        //cout<<fpo;
+        //cout<<fpo<<",\n";
+        //cout<<name_to_po[fpo];
         num_fpo++;
         w = name_to_po[fpo];
+        cout<<w;
         _curfo = w->wlist_index;
         trace_cone(w);
+        cout<<name_to_po[fpo];
     }
     flist_undetect.remove_if(
         [&](const fptr fptr_ele) { if (fptr_ele->fpo_num != num_fpo) return true;
         else return false;
         });
-    for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-        f = *pos;
-        //cout<<f->fault_no<<endl;
-    }
+
 }
 
 void ATPG::trace_cone(wptr w) {
