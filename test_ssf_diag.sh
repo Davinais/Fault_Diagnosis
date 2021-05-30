@@ -87,7 +87,7 @@ for circuit in "${circuits[@]}"; do
     # To round the number to integer in bc, we add 0.5 to it and divide it by 1 (since division uses scale)
     sample_counts=$(echo "scale=0; (${sample_rate}*${#fault_list[@]}+0.5)/1" | bc)
     if [ "${sample_counts}" != "${#fault_list[@]}" ]; then
-        readarray -t fault_list < <(shuf -n ${sample_counts} -e "${fault_list[@]}")
+        readarray -t fault_list < <(shuf -n ${sample_counts} -e "${fault_list[@]}" | sort -V)
     fi
     declare -i tot_fault=${#fault_list[@]}
 
