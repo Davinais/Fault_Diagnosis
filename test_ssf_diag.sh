@@ -39,10 +39,22 @@ for circuit in "${circuits[@]}"; do
             print $go" "$1" GO SA0";
             print $go" "$1" GO SA1";
         }
-    }' sample_circuits/${circuit}.ckt | sort -V)
+    }' sample_circuits/${circuit}.ckt)
 
-    # Parse all PIs
-    readarray -t pi_list < <(awk 'NF { if($1 == "i") print $2 }' sample_circuits/${circuit}.ckt | sort -V)
+    # Parse all PIs and add dummy_gate faults to the fault list
+    readarray -t pi_list_with_dummy < <(awk -v pi=1 'NF {
+        if($1 == "i") {
+            print $2" dummy_gate"pi;
+            pi++;
+        }
+    }' sample_circuits/${circuit}.ckt | sort -V)
+    for pi in "${pi_list_with_dummy[@]}"; do
+        fault_list_ori+=("${pi} GO SA0")
+        fault_list_ori+=("${pi} GO SA1")
+    done
+
+    # Sort the fault list
+    readarray -t fault_list_ori < <(IFS=$'\n'; sort -V <<< "${fault_list_ori[*]}")
 
     # Remove duplicate faults on fanout-free wire
     # E.g. 19GAT g3 GO and 19GAT g5 GI in c17 circuit
@@ -52,27 +64,27 @@ for circuit in "${circuits[@]}"; do
     # The rest are wires with 2 GI and GO SAFs, which are fanout-free wires
     # Be careful that we should `sort` before `uniq`, in this case, the fault list is already sorted
     readarray -t fofree_wires < <(IFS=$'\n'; echo "${fault_list_ori[*]}" |
-    awk '{ print $1" "$3 }' | uniq -c |
-    awk '{ if($1 == "2") print $2 }' | uniq -c |
-    awk '{ if($1 == "2") print $2 }')
+        awk '{ print $1" "$3 }' | uniq -c |
+        awk '{ if($1 == "2") print $2 }' | uniq -c |
+        awk '{ if($1 == "2") print $2 }'
+    )
 
     # Build a new fault list without duplicate faults
     declare -a fault_list
     declare -i fofree_idx=0
-    fo_segment=false
+    declare -i fo_segment=0
     for f in "${fault_list_ori[@]}"; do
         fofree=false
         if (( ${fofree_idx} < ${#fofree_wires[@]} )); then
-            if [[ "${f}" == "${fofree_wires[${fofree_idx}]} "* ]]; then
+            if (( fo_segment > 0 )); then
                 fofree=true
-                fo_segment=true
-            elif [[ "${f}" == "${fofree_wires[${fofree_idx}+1]} "* ]]; then
+                ((fo_segment--))
+                if (( fo_segment == 0 )); then
+                    ((fofree_idx++))
+                fi
+            elif [[ "${f}" == "${fofree_wires[${fofree_idx}]} "* ]]; then
                 fofree=true
-                fofree_idx+=1
-                fo_segment=true
-            elif [[ "${fo_segment}" == true ]]; then
-                fofree_idx+=1
-                fo_segment=false
+                fo_segment=3
             fi
         fi
         if [[ "${fofree}" == false ]] || [[ "${f}" == *"GO"* ]]; then
@@ -88,10 +100,8 @@ for circuit in "${circuits[@]}"; do
     fi
 
     #  Iteratively insert every fault in the fault list
-    declare -i pi_idx=0
     declare -i empty_num=0
     declare -i fail_num=0
-    pi_segment=false
     for fault in "${fault_list[@]}"; do
         # Replace space with underscore for filename
         f_filename="${fault// /_}"
@@ -107,31 +117,9 @@ for circuit in "${circuits[@]}"; do
         src/atpg -genFailLog ${ptn_file} ${ckt_file} -fault ${fault} > ${flog_file}
         if [ -s ${flog_file} ]; then
             src/atpg -diag ${ptn_file} ${ckt_file} ${flog_file} > /dev/null
-
-            if [[ ${pi_idx} < ${#pi_list[@]} ]]; then
-                if [[ "${fault}" == "${pi_list[${pi_idx}]} "* ]]; then
-                    pi_segment=true
-                elif [[ "${fault}" == "${pi_list[${pi_idx}+1]} "* ]]; then
-                    pi_idx+=1
-                    pi_segment=true
-                elif [[ "${pi_segment}" == true ]]; then
-                    pi_idx+=1
-                    pi_segment=false
-                fi
-            fi
-
             ret=$(grep "${f_str_s}" ${drpt_file})
             if [ ! -z "${ret}" ]; then
                 echo "    ${ret}"
-            elif [[ "${pi_segment}" == true ]]; then
-                f_pi_str=$(echo ${f_str_s} | awk '{ print $1" dummy_gate[0-9]+ GO "$4 }')
-                ret=$(grep -E "${f_pi_str}" ${drpt_file})
-                if [ ! -z "${ret}" ]; then
-                    echo "    ${ret}"
-                else
-                    echo ${f_str_s} >> ${diagfail_log}
-                    fail_num+=1
-                fi
             else
                 echo ${f_str_s} >> ${diagfail_log}
                 fail_num+=1
