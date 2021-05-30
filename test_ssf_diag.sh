@@ -39,10 +39,10 @@ for circuit in "${circuits[@]}"; do
             print $go" "$1" GO SA0";
             print $go" "$1" GO SA1";
         }
-    }' sample_circuits/${circuit}.ckt | sort)
+    }' sample_circuits/${circuit}.ckt | sort -V)
 
     # Parse all PIs
-    readarray -t pi_list < <(awk 'NF { if($1 == "i") print $2 }' sample_circuits/${circuit}.ckt | sort)
+    readarray -t pi_list < <(awk 'NF { if($1 == "i") print $2 }' sample_circuits/${circuit}.ckt | sort -V)
 
     # Remove duplicate faults on fanout-free wire
     # E.g. 19GAT g3 GO and 19GAT g5 GI in c17 circuit
@@ -62,7 +62,7 @@ for circuit in "${circuits[@]}"; do
     fo_segment=false
     for f in "${fault_list_ori[@]}"; do
         fofree=false
-        if [[ ${fofree_idx} < ${#fofree_wires[@]} ]]; then
+        if (( ${fofree_idx} < ${#fofree_wires[@]} )); then
             if [[ "${f}" == "${fofree_wires[${fofree_idx}]} "* ]]; then
                 fofree=true
                 fo_segment=true
