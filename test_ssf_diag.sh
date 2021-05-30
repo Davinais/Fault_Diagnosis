@@ -27,6 +27,7 @@ for circuit in "${circuits[@]}"; do
     rm -f ${diagfail_log}
 
     # Parse all faults
+    echo "Generating fault list..."
     readarray -t fault_list_ori < <(awk -v pi=1 'NF {
         if($1 == "i") {
             print $2" dummy_gate"pi" GO SA0";
@@ -48,7 +49,7 @@ for circuit in "${circuits[@]}"; do
 
     # Remove duplicate faults on fanout-free wire
     # E.g. 19GAT g3 GO and 19GAT g5 GI in c17 circuit
-
+    echo "Remove duplicate faults..."
     # First, we count "$WIRE $IO_TYPE" in the original fault list, and only left items with counts=2
     # Then we count "$WIRE", and only left items with counts=2 again
     # The rest are wires with 2 GI and GO SAFs, which are fanout-free wires
@@ -88,11 +89,14 @@ for circuit in "${circuits[@]}"; do
     if [ "${sample_counts}" != "${#fault_list[@]}" ]; then
         readarray -t fault_list < <(shuf -n ${sample_counts} -e "${fault_list[@]}")
     fi
+    declare -i tot_fault=${#fault_list[@]}
 
     #  Iteratively insert every fault in the fault list
     declare -i empty_num=0
     declare -i fail_num=0
+    declare -i tested_fault_num=0
     for fault in "${fault_list[@]}"; do
+        ((tested_fault_num++))
         # Replace space with underscore for filename
         f_filename="${fault// /_}"
         # Simplified version that without '(XXX)' and '*'
@@ -103,7 +107,7 @@ for circuit in "${circuits[@]}"; do
         flog_file="${flog_dir}/${circuit}/${circuit}_${f_filename}.failLog"
         drpt_file="${diag_dir}/${circuit}/${circuit}_${f_filename}.failLo.rpt"
 
-        echo "Diagnose SSF ${f_str_s}..."
+        echo "[${tested_fault_num}/${tot_fault}] Diagnose SSF ${f_str_s}..."
         src/atpg -genFailLog ${ptn_file} ${ckt_file} -fault ${fault} > ${flog_file}
         if [ -s ${flog_file} ]; then
             src/atpg -diag ${ptn_file} ${ckt_file} ${flog_file} > /dev/null
@@ -120,10 +124,10 @@ for circuit in "${circuits[@]}"; do
         fi
     done
     
-    success_num=$((${#fault_list[@]}-${empty_num}-${fail_num}))
+    success_num=$((tot_fault - empty_num - fail_num))
     echo ""
     echo "[Circuit ${circuit}]========================================="
-    echo "    Total tested faults: ${#fault_list[@]}"
+    echo "    Total tested faults: ${tot_fault}"
     echo "        Diagnose passed: ${success_num}"
     echo "        Diagnose failed: ${fail_num}"
     echo "          Empty faillog: ${empty_num}"
