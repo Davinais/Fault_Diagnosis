@@ -68,6 +68,7 @@ for circuit in "${circuits[@]}"; do
                 fo_segment=true
             elif [[ "${f}" == "${fofree_wires[${fofree_idx}+1]} "* ]]; then
                 fofree=true
+                fofree_idx+=1
                 fo_segment=true
             elif [[ "${fo_segment}" == true ]]; then
                 fofree_idx+=1
