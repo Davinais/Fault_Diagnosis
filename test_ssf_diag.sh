@@ -27,8 +27,13 @@ for circuit in "${circuits[@]}"; do
     rm -f ${diagfail_log}
 
     # Parse all faults
-    readarray -t fault_list_ori < <(awk 'NF {
-        if($1 != "i" && $1 != "o" && $1 != "name"){
+    readarray -t fault_list_ori < <(awk -v pi=1 'NF {
+        if($1 == "i") {
+            print $2" dummy_gate"pi" GO SA0";
+            print $2" dummy_gate"pi" GO SA1";
+            pi++;
+        }
+        else if($1 != "o" && $1 != "name"){
             gi=3;
             while($gi != ";") {
                 print $gi" "$1" GI SA0";
@@ -39,22 +44,7 @@ for circuit in "${circuits[@]}"; do
             print $go" "$1" GO SA0";
             print $go" "$1" GO SA1";
         }
-    }' sample_circuits/${circuit}.ckt)
-
-    # Parse all PIs and add dummy_gate faults to the fault list
-    readarray -t pi_list_with_dummy < <(awk -v pi=1 'NF {
-        if($1 == "i") {
-            print $2" dummy_gate"pi;
-            pi++;
-        }
     }' sample_circuits/${circuit}.ckt | sort -V)
-    for pi in "${pi_list_with_dummy[@]}"; do
-        fault_list_ori+=("${pi} GO SA0")
-        fault_list_ori+=("${pi} GO SA1")
-    done
-
-    # Sort the fault list
-    readarray -t fault_list_ori < <(IFS=$'\n'; sort -V <<< "${fault_list_ori[*]}")
 
     # Remove duplicate faults on fanout-free wire
     # E.g. 19GAT g3 GO and 19GAT g5 GI in c17 circuit
