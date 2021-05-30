@@ -6,7 +6,9 @@
 /**********************************************************************/
 
 #include "atpg.h"
+#include <stack>
 #include <unordered_map>
+#include <unordered_set>
 
 #define num_of_faults_in_parallel 16
 #define SA1 1
@@ -738,18 +740,12 @@ void ATPG::structural_backtrace() {
     wptr w;
     fptr f;
     int num_fpo = 0;
-    // for (auto kk : name_to_po) {
-    //     cout<<kk.first<<" . "<<kk.second->name<<endl;
-    // }
     for (auto fpo : all_fail_opGate) {
-        //cout<<fpo<<",\n";
-        //cout<<name_to_po[fpo];
         num_fpo++;
         w = name_to_po[fpo];
-        cout<<w;
+        // cout<<w;
         _curfo = w->wlist_index;
         trace_cone(w);
-        cout<<name_to_po[fpo];
     }
     flist_undetect.remove_if(
         [&](const fptr fptr_ele) { if (fptr_ele->fpo_num != num_fpo) return true;
@@ -759,17 +755,28 @@ void ATPG::structural_backtrace() {
 }
 
 void ATPG::trace_cone(wptr w) {
-    nptr curnode = w->inode.front();
-    auto related_f = gate_to_fault[curnode->name];
-    if (curnode->curfo != _curfo) {
-        for (auto f : related_f) {
-            f->fpo_num++;
+    stack<nptr> n_stack;
+    n_stack.push(w->inode.front());
+    unordered_set<nptr> visited;
+    visited.reserve(ncktnode);
+
+    while(!n_stack.empty()) {
+      nptr curnode = n_stack.top();
+      n_stack.pop();
+      if (visited.find(curnode) == visited.end()) {
+        visited.insert(curnode);
+        if (curnode->curfo != _curfo) {
+            for (auto& f : gate_to_fault[curnode->name]) {
+                f->fpo_num++;
+            }
+            curnode->curfo = _curfo;
         }
-        curnode->curfo = _curfo;
+        // Trace until reaching PI
+        if (curnode->type != INPUT) {
+          for (auto& wi : curnode->iwire) {
+              n_stack.push(wi->inode.front());
+          }
+        }
+      }
     }
-    if (curnode->type == INPUT) return;     // trace to PI
-    for (int i = 0, nin = curnode->iwire.size(); i < nin; i++) {
-        trace_cone(curnode->iwire[i]);
-    } // end of search
-    return;
 }
