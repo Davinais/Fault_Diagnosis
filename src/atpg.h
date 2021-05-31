@@ -126,7 +126,6 @@ class ATPG {
   void parse_diag_log(fstream& in);
   void diagnosis();
   void SSF_diagnosis();
-
   string diagname;                     /* for diagnosis report naming */
 
 

@@ -230,7 +230,8 @@ void ATPG::write_diagnosis_report() {
   int eqpos;
   double score;
   int fnum = 0;
-  string dfile = "../Diag_Report/" + diagname + ".rpt";
+  //string dfile = "../Diag_Report/" + diagname + ".rpt";
+  string dfile = "./Diag_Report" + diagname + ".rpt";
   cout<<"The diagnosis report is generated at "<<dfile<<endl;
   ofstream file(dfile, std::ifstream::out | std::ofstream::app); // open the input vectors' file
   if (!file) { // if the ofstream obj does not exist, fail to open the file

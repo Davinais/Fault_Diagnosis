@@ -76,10 +76,12 @@ int main(int argc, char *argv[]) {
     else {
       string temp = string(argv[i]);
       i++;
-      if (temp.compare(temp.size()-3,3,"ckt") == 0) inpFile = temp;
+      if (temp.compare(temp.size()-3,3,"ckt") == 0) {
+        inpFile = temp;
+      }
       if (temp.compare(temp.size()-7,7,"failLog") == 0) { 
         flogFile = temp;
-        atpg.diagname = temp.substr(temp.find("FailLog/")+8,temp.find(".failLog"));
+        atpg.diagname = temp.substr(temp.find("failLog/")+7,temp.size());
       }
     }
 

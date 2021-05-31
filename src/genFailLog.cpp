@@ -251,8 +251,9 @@ void ATPG::parse_diag_log(fstream& in){
 
     while(1){
         in >> _ >> vec_no >> gateName >> _ >> _ >> _ >> observed >> _ >> pattern;
-        if (in.eof() == true)
+        if (in.eof() == true) {
             break;
+        }
         temp = stoi(vec_no.substr (1, pattern.length()-1));
         pure_pattern = pattern.substr (2, pattern.length()-3);
         if (temp != last) {

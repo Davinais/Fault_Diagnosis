@@ -105,7 +105,7 @@ for circuit in "${circuits[@]}"; do
         ptn_file="patterns/${circuit}.ptn"
         ckt_file="sample_circuits/${circuit}.ckt"
         flog_file="${flog_dir}/${circuit}/${circuit}_${f_filename}.failLog"
-        drpt_file="${diag_dir}/${circuit}/${circuit}_${f_filename}.failLo.rpt"
+        drpt_file="${diag_dir}/${circuit}/${circuit}_${f_filename}.failLog.rpt"
 
         echo "[${tested_fault_num}/${tot_fault}] Diagnose SSF ${f_str_s}..."
         src/atpg -genFailLog ${ptn_file} ${ckt_file} -fault ${fault} > ${flog_file}
