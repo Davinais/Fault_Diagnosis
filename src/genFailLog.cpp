@@ -32,10 +32,12 @@ void ATPG::generate_genFailLog_list() {
     }
     if (!check) continue;
 
+    check = false;
     if (fault_IO[index] == "GO"){
         for (auto faultgate : w->inode){
             if (faultgate->name == fault_Gate_Pos[index]){
                 n = faultgate;
+                check = true;
                 break;
             }
         }
@@ -44,11 +46,12 @@ void ATPG::generate_genFailLog_list() {
         for (auto faultgate : w->onode){
             if (faultgate->name == fault_Gate_Pos[index]){
                 n = faultgate;
+                check = true;
                 break;
             }
         }
     }
-
+    if (!check) continue;
 
 
     // n = w->inode.front();
@@ -77,6 +80,13 @@ void ATPG::generate_genFailLog_list() {
   }
   flist.reverse();
   flist_undetect.reverse();
+
+  /* If the fault list is still empty, it means that we cannot find a valid position for given input */
+  if (flist_undetect.empty()) {
+    cerr << "Error: Invalid fault position! Abort..." << endl;
+    exit(1);
+  }
+  
   /*walk through all faults, assign fault_no one by one  */
   fault_num = 0;
   for (fptr f: flist_undetect) {
