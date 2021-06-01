@@ -282,7 +282,7 @@ class ATPG {
   void fault_simulate_vectors(int &);
   void fault_sim_a_vector(const string &, int &);
   void fault_sim_evaluate(wptr);
-  wptr get_faulty_wire(fptr, int &);
+  wptr get_faulty_wire(fptr, int &, bool=false);  // The 3rd argument indicates that if the fault is from external source
   void inject_fault_value(wptr, const int &, const int &);
   void combine(wptr, unsigned int &);
   unsigned int PINV(const unsigned int &);

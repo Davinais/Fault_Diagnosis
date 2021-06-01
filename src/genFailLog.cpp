@@ -169,11 +169,6 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
     }
   } // for in
 
-    
-
-
-
-
     for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos){
        
         f = *pos;
@@ -182,34 +177,26 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
 
         if (f->fault_type == sort_wlist[f->to_swlist]->value) continue;
 
-        if (!(sort_wlist[f->to_swlist]->is_faulty())) {
-            sort_wlist[f->to_swlist]->set_faulty();
-            // doesn't be used?!
-            wlist_faulty.push_front(sort_wlist[f->to_swlist]);
-            // cout << "wojgwpr" << endl;
-        }
-        inject_fault_value(sort_wlist[f->to_swlist], 0, f->fault_type);
-        sort_wlist[f->to_swlist]->set_fault_injected();
-
-        if ((f->node->type == OUTPUT) || (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {;}
-        else {
-            
-            if (f->io == 0){ //GI
-                f->node->owire.front()->set_scheduled();
+        fault_type = f->fault_type;
+        // Since the fault is from user input(external), the 3rd arg of get_faulty_wire should be set as true.
+        auto faulty_wire = (f->io == GO) ? sort_wlist[f->to_swlist] : get_faulty_wire(f, fault_type, true);
+        if (faulty_wire != nullptr) {
+            if (!(faulty_wire->is_faulty())) {
+                faulty_wire->set_faulty();
+                // doesn't be used?!
+                wlist_faulty.push_front(faulty_wire);
             }
-            else{ //GO
-                for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
+            inject_fault_value(faulty_wire, 0, fault_type);
+            faulty_wire->set_fault_injected();
+
+            if ((f->node->type == OUTPUT) || (faulty_wire->is_output())) {;}
+            else {
+                for (auto pos_n : faulty_wire->onode) {
                     pos_n->owire.front()->set_scheduled();
                 }
             }
-            
         }
-
     }
-
-
-
-
 
     for (i = 0; i < nckt; i++) {
         if (sort_wlist[i]->is_scheduled()) {

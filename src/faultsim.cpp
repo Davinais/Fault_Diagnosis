@@ -339,8 +339,9 @@ void ATPG::fault_sim_evaluate(const wptr w) {
 /* Given a gate-input fault f, check if f is propagated to the gate output.
    If so, returns the gate output wire as the faulty_wire.
    Also returns the gate output fault type. 
+   If the fault is from external source, external_src should be set as true.
 */
-ATPG::wptr ATPG::get_faulty_wire(const fptr f, int &fault_type) {
+ATPG::wptr ATPG::get_faulty_wire(const fptr f, int &fault_type, bool external_src) {
   int i, nin;
   bool is_faulty;
 
@@ -351,8 +352,11 @@ ATPG::wptr ATPG::get_faulty_wire(const fptr f, int &fault_type) {
     /* this case should not occur,
      * because we do not create fault in the NOT BUF gate input */
     case NOT:
+      fault_type = (f->fault_type == 0) ? STF : STR;
     case BUF:
-      fprintf(stdout, "something is fishy(get_faulty_net)...\n");
+      if (!external_src) {
+        fprintf(stdout, "something is fishy(get_faulty_net)...\n");
+      }
       break;
 
       /*check every gate input of AND
