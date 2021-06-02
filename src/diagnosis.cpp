@@ -6,7 +6,9 @@
 /**********************************************************************/
 
 #include "atpg.h"
+#include <stack>
 #include <unordered_map>
+#include <unordered_set>
 
 #define num_of_faults_in_parallel 16
 #define SA1 1
@@ -30,17 +32,7 @@ void ATPG::SSF_diagnosis() {
     generate_fault_list();
     build_mapping(false);
     cout<<"finish build\n";
-    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-    //     f = *pos;
-    //     cout<<"Current fault: "<<f->fault_no<<" EQVF: "<<f->eqv_fault_num<<endl;
-    // }
-    //display_undetect();
-    //findEQV();
-    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-    //     f = *pos;
-    //     cout<<f->fault_no<<" ";
-    // }
-    // cout<<endl;
+
 
     find_suspects();
     cout<<"After diagnosis:\n";
@@ -49,7 +41,7 @@ void ATPG::SSF_diagnosis() {
     //     cout<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP;
     //     cout<<endl;
     // }
-    findEQV();
+   findEQV();
     evaluateResult();
     write_diagnosis_report();
 }
@@ -60,6 +52,7 @@ void ATPG::evaluateResult() {
     f = *pos;
     f->TFSP = total_TF - f->TFSF;
     cout<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP;
+    // cout<<" EQVF: "<<f->eqv_fault_num;
     cout<<endl;
     f->score = static_cast<double>(f->TFSF) / static_cast<double>(f->TFSF + f->TPSF + f->TFSP) * 100.0;
     result.push_back(f);
@@ -78,7 +71,7 @@ void ATPG::find_suspects() {
     //     f = *pos;
     //     cout<<f->fault_no<<" ";
     // }
-    //cout<<endl;
+    cout<<endl;
     // check the TFSF & TPSF in the faling pattern
     for (auto fail_no : fail_vec_no) {
         fault_sim_a_failvector(vectors[fail_no]);
@@ -89,8 +82,11 @@ void ATPG::find_suspects() {
         f->detect = FALSE;
     }
     // check TPSF in the other pattern, improve resolution by removing suspects
+
     for (int i = vectors.size() - 1; i >= 0; i--) {
-        if (i == fail_vec_no[cur_id]) {
+        if (cur_id == fail_vec_no.size()) {
+            break;
+        } else if (i == fail_vec_no[cur_id]) {
             cur_id++;
             continue;
         } else {
@@ -153,12 +149,7 @@ void ATPG::build_mapping(bool show) {
     for (int i = 0; i < cktout.size(); i++) {
         size_t pos = cktout[i]->name.find("(");
         string key = cktout[i]->name.substr(0,pos);
-        cout<<key<<" , "<<cktout[i]->name<<endl;
         name_to_po.insert({key,cktout[i]});
-    }
-    cout<<"The content:\n";
-    for (auto kk : name_to_po) {
-        cout<<kk.first<<" . "<<kk.second->name<<endl;
     }
 
 }
@@ -300,12 +291,13 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
 
             /* if the faulty_wire is a primary output, it is detected */
             if (faulty_wire->is_output()) {
+
               //f->detected_time++;
               //if (f->detected_time == detected_num) {
                 f->detect = TRUE;
               //}
                 string cur_wire;
-                w = sort_wlist[f->to_swlist];
+                w = f->node->owire.front();
                 cur_wire = w->name.substr(0,w->name.find("("));
                 auto it = pattern_to_data.find(vec+cur_wire);
                 if (it != pattern_to_data.end()) {
@@ -321,7 +313,6 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
                 faulty_wire->set_faulty();
                 wlist_faulty.push_front(faulty_wire);
               }
-
               /* add the fault to the simulated list and inject it */
           
               simulated_fault_list[num_of_fault] = f;
@@ -654,6 +645,7 @@ void ATPG::backward_collect_EQVF(fptr target_fault, wptr w, bool cur_ftype) {
                     if (n1->type == AND || n1->type == BUF || n1->type == NOT || n1->type == NOR) {
                         backward_collect_EQVF(target_fault, wptr_ele, SA0);
                     }
+    
                 }
                 break;
             case NOR:
@@ -672,6 +664,7 @@ void ATPG::backward_collect_EQVF(fptr target_fault, wptr w, bool cur_ftype) {
                     if (n1->type == OR || n1->type == BUF || n1->type == NOT || n1->type == NAND) {
                         backward_collect_EQVF(target_fault, wptr_ele, SA1);
                     }
+
                 }
                 break;
             // case INPUT:
@@ -700,6 +693,8 @@ void ATPG::backward_collect_EQVF(fptr target_fault, wptr w, bool cur_ftype) {
                     if (n1->type == OR || n1->type == BUF || n1->type == NOT || n1->type == NAND) {
                         backward_collect_EQVF(target_fault, wptr_ele, SA1);
                     }
+
+
                 }
                 break;
             case NAND:
@@ -718,6 +713,7 @@ void ATPG::backward_collect_EQVF(fptr target_fault, wptr w, bool cur_ftype) {
                     if (n1->type == AND || n1->type == BUF || n1->type == NOT || n1->type == NOR) {
                         backward_collect_EQVF(target_fault, wptr_ele, SA0);
                     }
+
                 }
                 break;
             // case INPUT:
@@ -738,18 +734,11 @@ void ATPG::structural_backtrace() {
     wptr w;
     fptr f;
     int num_fpo = 0;
-    // for (auto kk : name_to_po) {
-    //     cout<<kk.first<<" . "<<kk.second->name<<endl;
-    // }
     for (auto fpo : all_fail_opGate) {
-        //cout<<fpo<<",\n";
-        //cout<<name_to_po[fpo];
         num_fpo++;
         w = name_to_po[fpo];
-        cout<<w;
         _curfo = w->wlist_index;
         trace_cone(w);
-        cout<<name_to_po[fpo];
     }
     flist_undetect.remove_if(
         [&](const fptr fptr_ele) { if (fptr_ele->fpo_num != num_fpo) return true;
@@ -759,17 +748,28 @@ void ATPG::structural_backtrace() {
 }
 
 void ATPG::trace_cone(wptr w) {
-    nptr curnode = w->inode.front();
-    auto related_f = gate_to_fault[curnode->name];
-    if (curnode->curfo != _curfo) {
-        for (auto f : related_f) {
-            f->fpo_num++;
+    stack<nptr> n_stack;
+    n_stack.push(w->inode.front());
+    unordered_set<nptr> visited;
+    visited.reserve(ncktnode);
+
+    while(!n_stack.empty()) {
+      nptr curnode = n_stack.top();
+      n_stack.pop();
+      if (visited.find(curnode) == visited.end()) {
+        visited.insert(curnode);
+        if (curnode->curfo != _curfo) {
+            for (auto& f : gate_to_fault[curnode->name]) {
+                f->fpo_num++;
+            }
+            curnode->curfo = _curfo;
         }
-        curnode->curfo = _curfo;
+        // Trace until reaching PI
+        if (curnode->type != INPUT) {
+          for (auto& wi : curnode->iwire) {
+              n_stack.push(wi->inode.front());
+          }
+        }
+      }
     }
-    if (curnode->type == INPUT) return;     // trace to PI
-    for (int i = 0, nin = curnode->iwire.size(); i < nin; i++) {
-        trace_cone(curnode->iwire[i]);
-    } // end of search
-    return;
 }
