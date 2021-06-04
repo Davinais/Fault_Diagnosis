@@ -254,7 +254,7 @@ void ATPG::write_diagnosis_report() {
   for (auto pos = result.cbegin(); pos != result.cend(); ++pos) {
     fnum++;
     f = *pos;
-    if (f->score < 50) break;
+    if (f->score < 90) break;
     w = sort_wlist[f->to_swlist];
     file<<"No."<<fnum<<"  "<<w->name.substr(0,w->name.find("("))<<" ";
     file<<f->node->name<<" ";

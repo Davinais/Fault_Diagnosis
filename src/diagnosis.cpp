@@ -13,6 +13,7 @@
 #define num_of_faults_in_parallel 16
 #define SA1 1
 #define SA0 0
+#define CONFLICT 2
 
 bool ATPG::compareScore(fptr f1, fptr f2) {
     if (f1->score > f2->score) return true;
@@ -20,13 +21,32 @@ bool ATPG::compareScore(fptr f1, fptr f2) {
 }
 
 void ATPG::diagnosis() {
-    SSF_diagnosis();
+    fptr f;
+    cktout_value = new int(cktout.size());
+    if (SSF_diagnosis()) {      // successful SSF diagnosis
+      cout<<"Successful SSF!!!"<<endl;
+      write_diagnosis_report();
+    } else {                    // SSF diagnosis fails, need MSF diagnosis
+      cout<<"Perform MSF!!!"<<endl;
+      reset_flist();
+      MSF_diagnosis();
+    }
+
 }
 
+void ATPG::MSF_diagnosis() {
 
+  path_tracing();
+  // for (auto fail_no : fail_vec_no) {
+  //   auto temp_list = fail_vec_to_fault[fail_no];
+  //   cout<<"vector "<<fail_no<<": \n";
+  //   for (auto f : temp_list) {
+  //     cout<<f->fault_no<<" : "<<sort_wlist[f->to_swlist]->name<<endl;
+  //   }
+  // }
+}
 
-
-void ATPG::SSF_diagnosis() {
+bool ATPG::SSF_diagnosis() {
     //filename = "c17";
     fptr f;
     generate_fault_list();
@@ -41,12 +61,15 @@ void ATPG::SSF_diagnosis() {
     //     cout<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP;
     //     cout<<endl;
     // }
-   findEQV();
-    evaluateResult();
-    write_diagnosis_report();
+
+    // no matching suspect!!! SSF diagnosis fail
+    if (flist_undetect.empty()) return false;
+    findEQV();
+    return evaluateResult();
+    //write_diagnosis_report();
 }
 
-void ATPG::evaluateResult() {
+bool ATPG::evaluateResult() {
   fptr f;
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     f = *pos;
@@ -58,9 +81,10 @@ void ATPG::evaluateResult() {
     result.push_back(f);
   }
   sort(result.begin(), result.end(), compareScore);
+  // check whether there is a perfect suspect
+  if (result[0]->score == 100) return true;
+  else return false;
 }
-
-
 
 void ATPG::find_suspects() {
     fptr f;
@@ -97,7 +121,6 @@ void ATPG::find_suspects() {
 
 }
 
-
 // build the mapping between gate & fault, wire & fault, name to po
 void ATPG::build_mapping(bool show) {
     fptr f;
@@ -118,25 +141,25 @@ void ATPG::build_mapping(bool show) {
         // cout<<f->node->name<<endl; 
     }
 
-    for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-        f = *pos;
-        auto it = wire_to_fault.find(f->to_swlist);
-        if (it == wire_to_fault.end()) {
-            forward_list<fptr> temp;
-            temp.push_front(f);
-            wire_to_fault.insert({f->to_swlist,temp});
-        } else {
-            it->second.push_front(f);
-        }
-    }
+    // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+    //     f = *pos;
+    //     auto it = wire_to_fault.find(f->to_swlist);
+    //     if (it == wire_to_fault.end()) {
+    //         forward_list<fptr> temp;
+    //         temp.push_front(f);
+    //         wire_to_fault.insert({f->to_swlist,temp});
+    //     } else {
+    //         it->second.push_front(f);
+    //     }
+    // }
     if (show) {
-        for (auto it = wire_to_fault.begin(); it != wire_to_fault.end(); it++) {
-            cout<<it->first<<": ";
-            for (auto f : it->second) {
-                cout<<f->to_swlist<<","<<f->fault_no<<";";
-            }
-            cout<<endl;
-        }
+        // for (auto it = wire_to_fault.begin(); it != wire_to_fault.end(); it++) {
+        //     cout<<it->first<<": ";
+        //     for (auto f : it->second) {
+        //         cout<<f->to_swlist<<","<<f->fault_no<<";";
+        //     }
+        //     cout<<endl;
+        // }
 
         for (auto it = gate_to_fault.begin(); it != gate_to_fault.end(); it++) {
             cout<<it->first<<": ";
@@ -153,7 +176,6 @@ void ATPG::build_mapping(bool show) {
     }
 
 }
-
 
 /* fault simulate a single fail vector and record TFSF, TPSF, TFSP for each fault*/
 void ATPG::fault_sim_a_failvector(const string &vec) {
@@ -225,34 +247,24 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
 
     /* consider only active (aka. excited) fault
      * (sa1 with correct output of 0 or sa0 with correct output of 1) */
-
-    // if (f->fault_no == 5172) {
-    //     cout<<f->node->name<<" "<<f->fault_type<<endl;
-    //     cout<<sort_wlist[f->to_swlist]->value<<endl;
-    // }
     if (f->fault_type != sort_wlist[f->to_swlist]->value) {
 
       /* if f is a primary output or is directly connected to an primary output
        * the fault is detected */
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-        //f->detected_time++;
-       // if (f->detected_time == detected_num) {
         f->detect = TRUE;
         string cur_wire;
         w = sort_wlist[f->to_swlist];
         cur_wire = w->name.substr(0,w->name.find("("));
         auto it = pattern_to_data.find(vec+cur_wire);
-        //cout<<vec+cur_wire<<endl;
         if (it != pattern_to_data.end()) {
             //cout<<cur_wire;
             f->TFSF++;
         }  else {
             f->TPSF++;
         }
-
       } else {
-
         /* if f is an gate output fault */
         if (f->io == GO) {
 
@@ -411,15 +423,6 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
         w->wire_value2 = w->wire_value1;  // reset to fault-free values
         /* end TODO*/
       } // pop out all faulty wires
-    //   //for n-det
-    //   for (i = 0; i < num_of_fault; i++) {
-    //     if (fault_detected[i] == 1) {
-    //       simulated_fault_list[i]->detected_time++;
-    //       if (simulated_fault_list[i]->detected_time == detected_num) {
-    //         simulated_fault_list[i]->detect = TRUE;
-    //       }
-    //     }
-    //   }
       num_of_fault = 0;  // reset the counter of faults in a packet
       start_wire_index = 10000;  //reset this index to a very large value.
     } // end fault sim of a packet
@@ -442,92 +445,12 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
       });
 }/* end of fault_sim_a_vector */
 
-
-
-/* evaluate wire w 
- * 1. update w->wire_value2 
- * 2. schedule new events if value2 != value1 */
-void ATPG::fault_sim_evaluate_diag(const wptr w) {
-  unsigned int new_value;
-  nptr n;
-  int i, nin, nout;
- // if (w->is_faulty()) return;
-  n = w->inode.front();
-  nin = n->iwire.size();
-  switch (n->type) {
-    /*break a multiple-input gate into multiple two-input gates */
-    case AND:
-    case BUF:
-    case NAND:
-      new_value = ALL_ONE;
-      for (i = 0; i < nin; i++) {
-        new_value &= n->iwire[i]->wire_value2;
-      }
-      if (n->type == NAND) {
-        new_value = PINV(new_value);  // PINV is for three-valued inversion
-      }
-      break;
-      /*  */
-    case OR:
-    case NOR:
-      new_value = ALL_ZERO;
-      for (i = 0; i < nin; i++) {
-        new_value |= n->iwire[i]->wire_value2;
-      }
-      if (n->type == NOR) {
-        new_value = PINV(new_value);
-      }
-      break;
-
-    case NOT:
-      new_value = PINV(n->iwire.front()->wire_value2);
-      break;
-
-    case XOR:
-      new_value = PEXOR(n->iwire[0]->wire_value2, n->iwire[1]->wire_value2);
-      break;
-
-    case EQV:
-      new_value = PEQUIV(n->iwire[0]->wire_value2, n->iwire[1]->wire_value2);
-      break;
-  }
-
-  /* if the new_value is different than the wire_value1 (the good value),
-   * save it */
-  if (w->wire_value1 != new_value) {
-
-    /* if this wire is faulty, make sure the fault remains injected */
-    if (w->is_fault_injected()) {
-      combine(w, new_value);
-    }
-
-    /* update wire_value2 */
-    w->wire_value2 = new_value;
-
-    /* insert wire w into the faulty_wire list */
-    if (!(w->is_faulty())) {
-      w->set_faulty();
-      wlist_faulty.push_front(w);
-    }
-
-    /* schedule new events */
-    for (i = 0, nout = w->onode.size(); i < nout; i++) {
-      if (w->onode[i]->type != OUTPUT) {
-        w->onode[i]->owire.front()->set_scheduled();
-      }
-    }
-  } // if new_value is different
-  // if new_value is ()the same as the good value, do not schedule any new event
-}/* end of fault_sim_evaluate */
-
-
 void ATPG::findEQV() {
     wptr w;
     fptr f;
     fptr head;
     for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
         f = *pos;
-        //cout<<f->fault_no<<": ";
         find_EQVF_head(f, sort_wlist[f->to_swlist], f->fault_type);
         head = f->EQVF_head;
         w = sort_wlist[head->to_swlist];
@@ -536,17 +459,6 @@ void ATPG::findEQV() {
             new EQV_FAULT(w->inode.front(), GO, head->fault_type, head->to_swlist));
         
         if (head->eqv_fault_num > 1) backward_collect_EQVF(f, w, head->fault_type);
-
-        // cout<<" number of EQVF: "<<f->eqv_fault_num;
-        // cout<<" EQVF head: "<<f->EQVF_head->fault_no<<endl;
-        // for (auto ef : f->eqv_fault_list) {
-        //     cout<<sort_wlist[ef->to_swlist]->name<<" "<<ef->node->name<<" ";
-        //     if (ef->io) cout<<"GO ";
-        //     else cout<<"GI ";
-        //     if (ef->fault_type) cout<<"SA1\n";
-        //     else cout<<"SA0\n";
-
-        // }
     }
 }
 
@@ -561,17 +473,12 @@ void ATPG::find_EQVF_head(fptr target_fault, wptr w, bool cur_ftype) {
         /* Meet EQVF head, stop finding */
         if (w->onode.size() > 1 || n->type == EQV ||n->type == OR
             || n->type == NOR || n->type == XOR || n->type == OUTPUT) {
-            //cout<<w->inode.front()->name;
-            //auto it = gate_to_fault.find(w->inode.front()->name);
-
             for(auto f :gate_to_fault[w->inode.front()->name]) {
-                //cout<<f->fault_no<<" ";
                 if (f->io == GO && f->fault_type == SA0) {
                     target_fault->EQVF_head = f;
                     break;
                 }
             }
-            //cout<<endl;
             return;
         }
         switch (n->type) {
@@ -591,19 +498,13 @@ void ATPG::find_EQVF_head(fptr target_fault, wptr w, bool cur_ftype) {
         /* Meet EQVF head, stop finding */
         if (w->onode.size() > 1 || n->type == EQV ||n->type == AND
             || n->type == NAND || n->type == XOR || n->type == OUTPUT) {
-            //cout<<w->inode.front()->name;
-            //auto it = gate_to_fault.find(w->inode.front()->name);
-
             for(auto f : gate_to_fault[w->inode.front()->name]) {
-                //cout<<f->fault_no<<" ";
-
                 if (f->io == GO && f->fault_type == SA1) {
                     target_fault->EQVF_head = f;
                     break;
                 }
                 
             }
-            //cout<<endl;
             return;
         }
         switch (n->type) {
@@ -667,13 +568,6 @@ void ATPG::backward_collect_EQVF(fptr target_fault, wptr w, bool cur_ftype) {
 
                 }
                 break;
-            // case INPUT:
-            // case OR:
-            // case NAND:
-            // case EQV:
-            // case XOR:
-
-            //     break;
         }
     } else {
         switch (n->type) {
@@ -716,19 +610,9 @@ void ATPG::backward_collect_EQVF(fptr target_fault, wptr w, bool cur_ftype) {
 
                 }
                 break;
-            // case INPUT:
-            // case OR:
-            // case NAND:
-            // case EQV:
-            // case XOR:
-
-            //     break;
         }
-
     }
-
 }
-
 
 void ATPG::structural_backtrace() {
     wptr w;
@@ -744,7 +628,6 @@ void ATPG::structural_backtrace() {
         [&](const fptr fptr_ele) { if (fptr_ele->fpo_num != num_fpo) return true;
         else return false;
         });
-
 }
 
 void ATPG::trace_cone(wptr w) {
@@ -763,7 +646,8 @@ void ATPG::trace_cone(wptr w) {
                 f->fpo_num++;
             }
             curnode->curfo = _curfo;
-        }
+        } 
+
         // Trace until reaching PI
         if (curnode->type != INPUT) {
           for (auto& wi : curnode->iwire) {
@@ -773,3 +657,475 @@ void ATPG::trace_cone(wptr w) {
       }
     }
 }
+
+void ATPG::reset_flist() {
+  fptr f;
+  flist_undetect.clear();
+
+  for (auto& f : flist) {
+    f->TFSF = 0;
+    f->TPSF = 0;
+    f->TFSP = 0;
+    f->score = 0.0;
+    f->detect = false;
+    flist_undetect.push_front(f.get());
+  }
+  flist_undetect.reverse();
+
+}
+
+void ATPG::path_tracing() {
+  int i, nckt;
+  fptr pf;      // potential fault site
+  wptr w;
+  //fptr f;
+  //int num_fpo = 0;
+
+  for (auto fail_no : fail_vec_no) {
+    bool backward_eliminate = false;
+    /* for every input, set its value to the current vector value */
+    for (i = 0; i < cktin.size(); i++) {
+      cktin[i]->value = ctoi(vectors[fail_no][i]);
+    }
+
+    /* initialize the circuit - mark all inputs as changed and all other
+    * nodes as unknown (2) */
+    nckt = sort_wlist.size();
+    for (i = 0; i < nckt; i++) {
+      if (i < cktin.size()) {
+        sort_wlist[i]->set_changed();
+      } else { 
+        sort_wlist[i]->value = U;
+      }
+    }
+    sim(); /* do a fault-free simulation, see sim.cpp */
+    // for (int i = 0; i < sort_wlist.size(); i++) {
+    //   cout<<sort_wlist[i]->name<<" : "<<sort_wlist[i]->value<<endl;
+    // }
+    cout<<"vec["<<fail_no<<"]: ";
+    for (int i = 0; i < cktout.size(); i++) {
+      cktout_value[i] = cktout[i]->value;
+    }
+
+    for (auto fpo : fail_vec_to_FO[fail_no]) {
+        w = name_to_po[fpo];
+        w->fail_vec_no = fail_no;
+        _curfo = w->wlist_index;
+        path_trace_cone(w, fail_no);
+    }
+    auto potential_fault_set = fail_vec_to_fault[fail_no];
+    for (auto pf : potential_fault_set) {
+      cout<<pf->fault_no<<endl;
+      X_propagate(sort_wlist[pf->to_swlist]);
+    }
+    // for (int i = 0; i < sort_wlist.size(); i++) {
+    //   cout<<sort_wlist[i]->name<<" : "<<sort_wlist[i]->value<<endl;
+    // }
+    for (int i = 0; i < cktout.size(); i++) {
+      if (cktout[i]->fail_vec_no != fail_no && cktout[i]->value == U) {
+        backward_eliminate = true;
+        cktout[i]->value = cktout_value[i];
+        if (C_backward_imply(cktout[i], cktout[i]->value) == CONFLICT) cout<<"[Error] Backward implication fail!!!\n";
+      }
+    }
+    if (backward_eliminate) {
+      cout<<"Perform backward elimination!!!\n";
+      for (auto pos = potential_fault_set.begin(), last = potential_fault_set.end(); pos != last; ) {
+        pf = *pos;
+        cout<<pf->fault_no<<" : "<<pf->fault_type<<" : ";
+        cout<<sort_wlist[pf->to_swlist]->value<<endl;
+        if ((pf->fault_type != sort_wlist[pf->to_swlist]->value) 
+                && sort_wlist[pf->to_swlist]->value != U) {
+          pos = potential_fault_set.erase(pos);
+        } else {
+          ++pos;
+        }
+      }
+      for (auto pf : potential_fault_set) {
+        cout<<pf->fault_no<<endl;
+      }
+    }
+    // for (int i = 0; i < sort_wlist.size(); i++) {
+    //   cout<<sort_wlist[i]->name<<" : "<<sort_wlist[i]->value<<endl;
+    // }
+    cout<<endl;
+  } 
+}
+
+void ATPG::path_trace_cone(wptr w, int fail_no) {
+    unordered_set<fptr> temp;
+    stack<nptr> n_stack;
+    n_stack.push(w->inode.front());
+
+    unordered_set<nptr> visited;
+    visited.reserve(ncktnode);
+    // for (auto& f : gate_to_fault[w->inode.front()->name]) {
+    //   if (f->io == GO)
+        // temp.push_front(f);
+    // }
+    fail_vec_to_fault.insert({fail_no, temp});
+    auto curfailvec = fail_vec_to_fault.find(fail_no);
+
+    while(!n_stack.empty()) {
+      nptr curnode = n_stack.top();
+      wptr curwire = curnode->owire.front();
+      n_stack.pop();
+      if (visited.find(curnode) == visited.end()) {
+        visited.insert(curnode);
+        switch (curnode->type) {
+          case AND :
+            if (curwire->value == 1) {
+              for (auto& wi : curnode->iwire) 
+                  n_stack.push(wi->inode.front());
+              for (auto& f : gate_to_fault[curnode->name]) {
+                  curfailvec->second.insert(f);
+              }
+            } else {
+              for (auto& wi : curnode->iwire) {
+                if (wi->value == 0)
+                  n_stack.push(wi->inode.front());
+              }
+              for (auto& f : gate_to_fault[curnode->name]) {
+                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 0) || f->io == GO)
+                  curfailvec->second.insert(f);
+              }   
+            }
+            break;
+          case NOR :
+            if (curwire->value == 1) {
+              for (auto& wi : curnode->iwire) 
+                  n_stack.push(wi->inode.front());
+              for (auto& f : gate_to_fault[curnode->name]) 
+                  curfailvec->second.insert(f);
+            } else {
+              for (auto& wi : curnode->iwire) {
+                if (wi->value == 1)
+                  n_stack.push(wi->inode.front());
+              }
+              for (auto& f : gate_to_fault[curnode->name]) {
+                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 1) || f->io == GO)
+                  curfailvec->second.insert(f);
+              }   
+            }
+            break;
+          case NAND :
+            if (curwire->value == 0) {
+              for (auto& wi : curnode->iwire) 
+                  n_stack.push(wi->inode.front());
+              for (auto& f : gate_to_fault[curnode->name]) 
+                  curfailvec->second.insert(f);
+            } else {
+              for (auto& wi : curnode->iwire) {
+                if (wi->value == 0) 
+                  n_stack.push(wi->inode.front());
+              }
+              for (auto& f : gate_to_fault[curnode->name]) {
+                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 0) || f->io == GO)
+                  curfailvec->second.insert(f);
+              }   
+            }   
+            break;   
+          case OR :
+            if (curwire->value == 0) {
+              for (auto& wi : curnode->iwire) 
+                  n_stack.push(wi->inode.front());
+              for (auto& f : gate_to_fault[curnode->name]) 
+                  curfailvec->second.insert(f);
+            } else {
+              for (auto& wi : curnode->iwire) {
+                if (wi->value == 1)
+                  n_stack.push(wi->inode.front());
+              }
+              for (auto& f : gate_to_fault[curnode->name]) {
+                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 1) || f->io == GO)
+                  curfailvec->second.insert(f);
+              }   
+            }  
+            break;
+          case BUF :
+          case NOT :
+          case EQV :
+          case XOR :
+            for (auto& wi : curnode->iwire) 
+              n_stack.push(wi->inode.front());
+            for (auto& f : gate_to_fault[curnode->name]) 
+                curfailvec->second.insert(f);
+            break;
+          case INPUT :
+            for (auto& f : gate_to_fault[curnode->name]) 
+                curfailvec->second.insert(f);
+            break;
+        }
+      }
+    }
+}
+
+// propagate X from potentail fault site to PO
+void ATPG::X_propagate(wptr w) {
+    stack<nptr> n_stack;
+    nptr curnode;
+    wptr curwire;
+    n_stack.push(w->onode.front());
+    unordered_set<nptr> visited;
+    visited.reserve(ncktnode);
+    w->value = U;
+    while(!n_stack.empty()) {
+      curnode = n_stack.top();
+      n_stack.pop();
+      if (curnode->type != OUTPUT)
+        curwire = curnode->owire.front();
+      else continue;
+      if (visited.find(curnode) == visited.end()) {
+        visited.insert(curnode);
+        // Trace until reaching PI
+        if (curnode->type != OUTPUT) {
+          curwire->value = U;
+          for (auto& no : curwire->onode) {
+              if (no->type == OUTPUT) continue;
+              if (no->owire.front()->value != U)
+                n_stack.push(no);
+          }
+        }
+      }
+    }
+}
+
+/* Conservative backward implication */
+// Try to turn unknown into certain value and eliminate suspects that is impossible   
+
+int ATPG::C_backward_imply(const wptr current_wire, const int &desired_logic_value) {
+  nptr current_node = current_wire->inode.front();
+  int pi_is_reach = FALSE;
+  int i, nin;
+  nin = current_node->iwire.size();
+  if (current_wire->is_input()) { // if PI
+    if (current_wire->value != U &&
+        current_wire->value != desired_logic_value) {
+      return (CONFLICT); // conlict with previous assignment
+    }
+    current_wire->value = desired_logic_value; // assign PI to the objective value
+    current_wire->set_changed();
+    // CHANGED means the logic value on this wire has recently been changed
+    return (TRUE);
+  } else { // if not PI
+    if (current_wire->value != U &&
+        current_wire->value != desired_logic_value) {
+      cout<<current_wire->name<<" "<<current_node->name;
+      cout<<current_wire->value<<" "<<desired_logic_value<<endl;
+      return (CONFLICT); // conlict with previous assignment
+    }
+    current_wire->value = desired_logic_value; // assign PI to the objective value
+    current_wire->set_changed();
+    switch (current_node->type) {
+      /* assign NOT input opposite to its objective ouput */
+      /* go backward iteratively.  depth first search */
+      case NOT:
+
+        switch (C_backward_imply(current_node->iwire.front(), (desired_logic_value ^ 1))) {
+          case TRUE:
+            pi_is_reach = TRUE;
+            break;
+          case CONFLICT:
+            return (CONFLICT);
+            break;
+          case FALSE:
+            break;
+        }
+        break;
+
+        /* if objective is NAND output=zero, then NAND inputs are all ones
+         * keep doing this back implication iteratively  */
+      case NAND:
+        if (desired_logic_value == 0) {
+          for (i = 0; i < nin; i++) {
+            switch (C_backward_imply(current_node->iwire[i], 1)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        } else {    
+        // if there is only one input with unknown, 
+        //other value is non-controlling value, turn unknown into controlling value 
+        // if find a input with controlling value, stop backward implication
+          int control_idx = -1;
+          bool only_control = false;
+          for (i = 0; i < nin; i++) {
+            if (current_node->iwire[i]->value == 0) break;
+            else if (current_node->iwire[i]->value == U && control_idx == -1) {
+              control_idx = i;
+              only_control = true;
+            } else if (current_node->iwire[i]->value == U && only_control != true) {
+              only_control = false; 
+              break;
+            }
+          }
+          if (only_control == true) {
+            switch (C_backward_imply(current_node->iwire[control_idx], 0)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        }
+        break;
+
+      case AND:
+        if (desired_logic_value == 1) {
+          for (i = 0; i < nin; i++) {
+            switch (C_backward_imply(current_node->iwire[i], 1)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        } else {    
+        // if there is only one input with unknown, 
+        //other value is non-controlling value, turn unknown into controlling value 
+          int control_idx = -1;
+          bool only_control = false;
+          for (i = 0; i < nin; i++) {
+            if (current_node->iwire[i]->value == 0) break;
+            else if (current_node->iwire[i]->value == U && control_idx == -1) {
+              control_idx = i;
+              only_control = true;
+            } else if (current_node->iwire[i]->value == U && only_control != true) {
+              only_control = false; 
+              break;
+            }
+          }
+          if (only_control == true) {
+            switch (C_backward_imply(current_node->iwire[control_idx], 0)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        }
+        break;
+
+      case OR:
+        if (desired_logic_value == 0) {
+          for (i = 0; i < nin; i++) {
+            switch (C_backward_imply(current_node->iwire[i], 0)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        } else {  
+          // if there is only one input with unknown,   
+          //other value is non-controlling value, turn unknown into controlling value 
+          int control_idx = -1;
+          bool only_control = false;
+          for (i = 0; i < nin; i++) {
+            if (current_node->iwire[i]->value == 1) break;
+            else if (current_node->iwire[i]->value == U && control_idx == -1) {
+              control_idx = i;
+              only_control = true;
+            } else if (current_node->iwire[i]->value == U && only_control != true) {
+              only_control = false; 
+              break;
+            }
+          }
+          if (only_control == true) {
+            switch (C_backward_imply(current_node->iwire[control_idx], 1)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        }
+        break;
+
+      case NOR:
+        if (desired_logic_value == 1) {
+          for (i = 0; i < nin; i++) {
+            switch (C_backward_imply(current_node->iwire[i], 0)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        } else {    
+          // if there is only one input with unknown, 
+          //other value is non-controlling value, turn unknown into controlling value 
+          int control_idx = -1;
+          bool only_control = false;
+          for (i = 0; i < nin; i++) {
+            if (current_node->iwire[i]->value == 1) break;
+            else if (current_node->iwire[i]->value == U && control_idx == -1) {
+              control_idx = i;
+              only_control = true;
+            } else if (current_node->iwire[i]->value == U && only_control != true) {
+              only_control = false; 
+              break;
+            }
+          }
+          if (only_control == true) {
+            switch (C_backward_imply(current_node->iwire[control_idx], 1)) {
+              case TRUE:
+                pi_is_reach = TRUE;
+                break;
+              case CONFLICT:
+                return (CONFLICT);
+                break;
+              case FALSE:
+                break;
+            }
+          }
+        }
+        break;
+
+      case BUF:
+        switch (C_backward_imply(current_node->iwire.front(), desired_logic_value)) {
+          case TRUE:
+            pi_is_reach = TRUE;
+            break;
+          case CONFLICT:
+            return (CONFLICT);
+            break;
+          case FALSE:
+            break;
+        }
+        break;
+    }
+
+    return (pi_is_reach);
+  }
+}/* end of C_backward_imply */

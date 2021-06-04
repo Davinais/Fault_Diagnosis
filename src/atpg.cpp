@@ -145,6 +145,7 @@ ATPG::ATPG() {
 
 /* constructor of WIRE */
 ATPG::WIRE::WIRE() {
+    this->fail_vec_no = -1;
     this->value = 0;
     this->level = 0;
     this->wire_value1 = 0;
