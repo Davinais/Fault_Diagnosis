@@ -654,6 +654,7 @@ int ATPG::backward_imply(const wptr current_wire, const int &desired_logic_value
       case NAND:
         if (desired_logic_value == 0) {
           for (i = 0; i < nin; i++) {
+            cout<<"back!!!\n";
             switch (backward_imply(current_wire->inode.front()->iwire[i], 1)) {
               case TRUE:
                 pi_is_reach = TRUE;
@@ -736,3 +737,8 @@ int ATPG::backward_imply(const wptr current_wire, const int &desired_logic_value
     return (pi_is_reach);
   }
 }/* end of backward_imply */
+
+
+
+
+

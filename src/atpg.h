@@ -25,7 +25,6 @@
 #include<unordered_set>
 #include <unordered_map>
 
-
 #define HASHSIZE 3911
 
 /* gate type of node,  used in class NODE */
@@ -125,7 +124,9 @@ class ATPG {
   bool get_diag_only() { return diag_only; }
   void parse_diag_log(fstream& in);
   void diagnosis();
-  void SSF_diagnosis();
+  bool SSF_diagnosis();
+  void MSF_diagnosis();
+
   string diagname;                     /* for diagnosis report naming */
 
 
@@ -183,8 +184,8 @@ class ATPG {
   //map<string, vector<pair<string,bool>>> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   map<string, bool> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   unordered_set<string> all_fail_opGate; /* record all output failling gate*/
-  
-
+  unordered_map<int, unordered_set<string>> fail_vec_to_FO; /* record all failing outputs for each corresponding failing pattern*/
+  int *cktout_value;             /* record the good sim value of each PO */
 
   // Diagnosis 
   int total_TF;
@@ -193,7 +194,7 @@ class ATPG {
   int ncktwire;
   void write_diagnosis_report();  // implement in display.cpp
   /* Evaluate the results */
-  void evaluateResult();
+  bool evaluateResult();
   static bool compareScore(fptr f1, fptr f2);
   /* Data Mapping */
   void build_mapping(bool show);
@@ -205,21 +206,28 @@ class ATPG {
 
   /* Single fault diagnosis */
   void fault_sim_a_failvector(const string &vec);
-  void fault_sim_evaluate_diag(const wptr w);
 
-  // build partial dictionary
+  /* find suspects */
   int _curfo;
   void find_suspects();
   void structural_backtrace();
   void trace_cone(wptr w);
 
 
+  /* DSIE algorithm */
+  void path_tracing();
+  void path_trace_cone(wptr w, int fail_no);
+  void X_propagate(wptr w); 
+  int C_backward_imply(const wptr current_wire, const int &desired_logic_value);  // Conservative implication
+  /* reset_flist */
+  void reset_flist();
 
   vector<fptr> result;
   // mapping
   unordered_map<string, wptr> name_to_po;            // given a name, find its wire (primary output) 
-  unordered_map<int,forward_list<fptr>> wire_to_fault; // only for diagnosis
+  //unordered_map<int,forward_list<fptr>> wire_to_fault; ****** Not used!!! ******
   unordered_map<string,forward_list<fptr>> gate_to_fault; // only for diagnosis
+  unordered_map<int,unordered_set<fptr>> fail_vec_to_fault; // given a failing pattern ID, find its potential defect sites
 
   
   /////////////////////////////////////////////////////////
@@ -321,7 +329,9 @@ class ATPG {
   class WIRE {
    public:
     WIRE();
-
+    /****** final ******/
+    int fail_vec_no;           /* given a pattern, if it is failing output record ID of current failing pattern */
+    /*******************/
     string name;               /* ascii name of wire */
     vector<nptr> inode;        /* nodes driving this wire */
     vector<nptr> onode;        /* nodes driven by this wire */
@@ -442,11 +452,8 @@ class ATPG {
   class EQV_FAULT {
    public:
     EQV_FAULT(nptr _node, short _io, short _fault_type, int _to_swlist);
-
     nptr node;                 /* gate under test(NIL if PI/PO fault) */
     short io;                  /* 0 = GI; 1 = GO */
-    //short index;               /* index for GI fault. it represents the   */
-                                 /* associated gate input index number for this GI fault */
     short fault_type;          /* s-a-1 or s-a-0 or slow-to-rise or slow-to-fall fault */
     int to_swlist;             /* index to the sort_wlist[] */
   }; // class FAULT  

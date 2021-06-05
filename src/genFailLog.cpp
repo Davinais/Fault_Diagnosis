@@ -277,6 +277,15 @@ void ATPG::parse_diag_log(fstream& in){
         //cout<<pure_pattern + gateName<<endl;
         pattern_to_data.insert({pure_pattern + gateName,ob});
         all_fail_opGate.insert(gateName);
+
+        auto it = fail_vec_to_FO.find(temp);
+        if (it == fail_vec_to_FO.end()) {
+            unordered_set<string> temp_FO;
+            temp_FO.insert(gateName);
+            fail_vec_to_FO.insert({temp,temp_FO});
+        } else {
+            it->second.insert(gateName);
+        }
         total_TF++;
         // cout << "@@" << endl;
     }
