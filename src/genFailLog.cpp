@@ -243,25 +243,30 @@ void ATPG::parse_diag_log(fstream& in){
 
     string gateName, observed, pattern, _, vec_no;
     string pure_pattern;
-    int temp, last = -1;
+    int temp, ctemp, last = -1;
     bool ob;
 
     while(1){
-        in >> _ >> vec_no >> gateName >> _ >> _ >> _ >> observed >> _ >> pattern;
+        // in >> _ >> vec_no >> gateName >> _ >> _ >> _ >> observed >> _ >> pattern;
+        in >> vec_no >> gateName >> _ >> _ >> _ >> observed >> _ >> pattern;
         if (in.eof() == true) {
             break;
         }
-        temp = stoi(vec_no.substr (1, pattern.length()-1));
+        // temp = stoi(vec_no.substr (1, pattern.length()-1));
+        ctemp = 0;
+        for (int i=pattern.length();i>=0;i--){
+            ctemp = i;
+            if (vec_no[i] == '[') break;
+        }
+        cout << ctemp  << ", " <<pattern.length()-1 << endl;
+        temp = stoi(vec_no.substr (ctemp+1, pattern.length()-1));
+        
         pure_pattern = pattern.substr (2, pattern.length()-3);
         if (temp != last) {
             last = temp;
             fail_vec_no.push_back(temp);
         }
-        // if (temp.compare(0,temp.size(), pure_pattern) != 0) {
-        //     pure_pattern = temp;
-        //     cout<<pure_pattern;
-        //     fail_vector.push_back(pure_pattern);
-        // }
+
         if(observed == "H") ob = 1;
         else ob = 0;
         //pair <string, bool> p;
