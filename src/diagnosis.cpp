@@ -95,7 +95,7 @@ void ATPG::find_suspects() {
     //     f = *pos;
     //     cout<<f->fault_no<<" ";
     // }
-    cout<<endl;
+    //cout<<endl;
     // check the TFSF & TPSF in the faling pattern
     for (auto fail_no : fail_vec_no) {
         //cout<<vectors[fail_no]<<endl;

@@ -243,7 +243,7 @@ void ATPG::parse_diag_log(fstream& in){
 
     string gateName, observed, pattern, _, vec_no;
     string pure_pattern;
-    int temp, ctemp, last = -1;
+    int temp, c_pos, last = -1;     // c_pos record the position of "[" in vec_no
     bool ob;
 
     while(1){
@@ -253,14 +253,12 @@ void ATPG::parse_diag_log(fstream& in){
             break;
         }
         // temp = stoi(vec_no.substr (1, pattern.length()-1));
-        ctemp = 0;
-        for (int i=pattern.length();i>=0;i--){
-            ctemp = i;
-            if (vec_no[i] == '[') break;
-        }
-        //cout << ctemp  << ", " <<pattern.length()-1 << endl;
-        temp = stoi(vec_no.substr (ctemp+1, pattern.length()-1));
-        
+        // for (int i=vec_no.length();i>=0;i--){
+        //     ctemp = i;
+        //     if (vec_no[i] == '[') break;
+        // }
+        c_pos = vec_no.find("[");
+        temp = stoi(vec_no.substr(c_pos+1, vec_no.length() - c_pos - 2));
         pure_pattern = pattern.substr (2, pattern.length()-3);
         if (temp != last) {
             last = temp;
