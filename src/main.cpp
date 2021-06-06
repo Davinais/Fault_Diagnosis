@@ -119,16 +119,16 @@ int main(int argc, char *argv[]) {
 
 /* if vector file is provided, read it */
   if (!vetFile.empty()) { atpg.read_vectors(vetFile); }
-  if(!atpg.get_genFailLog_only()) atpg.timer(stdout, "for reading in circuit");
+  if(!atpg.get_genFailLog_only() && !atpg.get_diag_only()) atpg.timer(stdout, "for reading in circuit");
 
   atpg.level_circuit();  // level.cpp
-  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for levelling circuit");
+  if(!atpg.get_genFailLog_only() && !atpg.get_diag_only())atpg.timer(stdout, "for levelling circuit");
 
   atpg.rearrange_gate_inputs();  //level.cpp
-  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for rearranging gate inputs");
+  if(!atpg.get_genFailLog_only() && !atpg.get_diag_only())atpg.timer(stdout, "for rearranging gate inputs");
 
   atpg.create_dummy_gate(); //init_flist.cpp
-  if(!atpg.get_genFailLog_only())atpg.timer(stdout, "for creating dummy nodes");
+  if(!atpg.get_genFailLog_only() && !atpg.get_diag_only())atpg.timer(stdout, "for creating dummy nodes");
 
   if ((!atpg.get_tdfsim_only()) && (!atpg.get_genFailLog_only()) && (!atpg.get_diag_only())) atpg.generate_fault_list(); //init_flist.cpp
   else if(!atpg.get_tdfsim_only() && (!atpg.get_diag_only())) atpg.generate_genFailLog_list(); //defined in genFailLog.cpp

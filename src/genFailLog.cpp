@@ -258,7 +258,7 @@ void ATPG::parse_diag_log(fstream& in){
             ctemp = i;
             if (vec_no[i] == '[') break;
         }
-        cout << ctemp  << ", " <<pattern.length()-1 << endl;
+        //cout << ctemp  << ", " <<pattern.length()-1 << endl;
         temp = stoi(vec_no.substr (ctemp+1, pattern.length()-1));
         
         pure_pattern = pattern.substr (2, pattern.length()-3);

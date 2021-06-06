@@ -229,7 +229,7 @@ void ATPG::input(const string &infile) {
 
   file.close();
   create_structure();
-  if(!get_genFailLog_only()){
+  if(!get_genFailLog_only() && !get_diag_only()){
     fprintf(stdout, "\n");
     fprintf(stdout, "#Circuit Summary:\n");
     fprintf(stdout, "#---------------\n");
