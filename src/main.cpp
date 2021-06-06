@@ -81,7 +81,14 @@ int main(int argc, char *argv[]) {
       }
       if (temp.compare(temp.size()-7,7,"failLog") == 0) { 
         flogFile = temp;
-        atpg.diagname = temp.substr(temp.find("failLog/")+7,temp.size());
+        int start_pos = temp.size();
+        for (int i = temp.size(); i >= 0; i--){
+            start_pos = i;
+            if (temp[i] == '/') break;
+        }
+        atpg.diagname = temp.substr(start_pos,temp.size());
+              cout<<atpg.diagname;
+
       }
     }
 

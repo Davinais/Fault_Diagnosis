@@ -25,7 +25,7 @@ void ATPG::diagnosis() {
     cktout_value = new int(cktout.size());
     if (SSF_diagnosis()) {      // successful SSF diagnosis
       cout<<"Successful SSF!!!"<<endl;
-      //write_diagnosis_report();
+      write_diagnosis_report();
     } else {                    // SSF diagnosis fails, need MSF diagnosis
       cout<<"Perform MSF!!!"<<endl;
       reset_flist();
@@ -74,9 +74,9 @@ bool ATPG::evaluateResult() {
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     f = *pos;
     f->TFSP = total_TF - f->TFSF;
-    //cout<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP;
+    // cout<<f->fault_no<<" TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP;
     // cout<<" EQVF: "<<f->eqv_fault_num;
-    //cout<<endl;
+    // cout<<endl;
     f->score = static_cast<double>(f->TFSF) / static_cast<double>(f->TFSF + f->TPSF + f->TFSP) * 100.0;
     result.push_back(f);
   }
@@ -90,7 +90,7 @@ void ATPG::find_suspects() {
     fptr f;
     int cur_id = 0, num = 0;
     structural_backtrace();
-    //cout<<"After backtrace: ";
+    // cout<<"After backtrace: ";
     // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     //     f = *pos;
     //     cout<<f->fault_no<<" ";
@@ -255,10 +255,10 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
         f->detect = TRUE;
-        string cur_wire;
+        //string cur_wire;
         w = sort_wlist[f->to_swlist];
-        cur_wire = w->name.substr(0,w->name.find("("));
-        auto it = pattern_to_data.find(vec+cur_wire);
+        //cur_wire = w->name.substr(0,w->name.find("("));
+        auto it = pattern_to_data.find(vec+w->name);
         if (it != pattern_to_data.end()) {
             //cout<<cur_wire;
             f->TFSF++;
@@ -309,10 +309,10 @@ void ATPG::fault_sim_a_failvector(const string &vec) {
               //if (f->detected_time == detected_num) {
                 f->detect = TRUE;
               //}
-                string cur_wire;
+                //string cur_wire;
                 w = f->node->owire.front();
-                cur_wire = w->name.substr(0,w->name.find("("));
-                auto it = pattern_to_data.find(vec+cur_wire);
+                //cur_wire = w->name.substr(0,w->name.find("("));
+                auto it = pattern_to_data.find(vec+w->name);
                 if (it != pattern_to_data.end()) {
                     f->TFSF++;
                 }  else {

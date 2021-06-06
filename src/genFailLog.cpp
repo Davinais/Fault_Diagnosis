@@ -211,8 +211,9 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
         wptr w = cktout[i];
         //cout << (w->wire_value1 & Mask[0]) <<", " << (w->wire_value2 & Mask[0]) << endl;
         if((w->wire_value1 & Mask[0]) != (w->wire_value2 & Mask[0])){
-            cout << "vector [" << number << "]  " ;
-            print_name(w->name);
+            cout << "vector[" << number << "]  " ;
+            //print_name(w->name);
+            cout << w->name << "   ";
             cout << "expect " ;
             if ((w->wire_value1 & Mask[0]) == 3) cout << "H, observe ";
             else cout << "L, observe ";
