@@ -127,7 +127,7 @@ class ATPG {
   bool SSF_diagnosis();
   void MSF_diagnosis();
 
-  string diagname;                     /* for diagnosis report naming */
+  string dfile;                     /* for diagnosis report naming */
 
 
 
@@ -185,7 +185,7 @@ class ATPG {
   map<string, bool> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   unordered_set<string> all_fail_opGate; /* record all output failling gate*/
   unordered_map<int, unordered_set<string>> fail_vec_to_FO; /* record all failing outputs for each corresponding failing pattern*/
-  int *cktout_value;             /* record the good sim value of each PO */
+  //int *cktout_value;             /* record the good sim value of each PO */
 
   // Diagnosis 
   int total_TF;

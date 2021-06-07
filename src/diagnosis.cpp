@@ -22,7 +22,7 @@ bool ATPG::compareScore(fptr f1, fptr f2) {
 
 void ATPG::diagnosis() {
     fptr f;
-    cktout_value = new int(cktout.size());
+    //cktout_value = new int(cktout.size());
     if (SSF_diagnosis()) {      // successful SSF diagnosis
       cout<<"Successful SSF!!!"<<endl;
       write_diagnosis_report();
@@ -31,7 +31,7 @@ void ATPG::diagnosis() {
       reset_flist();
       MSF_diagnosis();
     }
-
+  //delete cktout_value;
 }
 
 void ATPG::MSF_diagnosis() {
@@ -678,6 +678,7 @@ void ATPG::path_tracing() {
   int cur_total_pf = 0;
   fptr pf;      // potential fault site
   wptr w;
+  int cktout_temp[cktout.size()];
   //fptr f;
   //int num_fpo = 0;
 
@@ -707,7 +708,7 @@ void ATPG::path_tracing() {
     //   cout<<sort_wlist[i]->name<<" : "<<sort_wlist[i]->value<<endl;
     // }
     // for (int i = 0; i < cktout.size(); i++) {
-    //   cktout_value[i] = cktout[i]->value;
+    //   cktout_temp[i] = cktout[i]->value;
     // }
     for (auto fpo : fail_vec_to_FO[fail_no]) {
         w = name_to_po[fpo];
@@ -724,10 +725,12 @@ void ATPG::path_tracing() {
     cur_total_pf = fail_vec_to_fault[fail_no].size();
     last_total_pf = cur_total_pf + 1;
     //cout<<"vec["<<fail_no<<"]: ";
+    
     while (cur_total_pf < last_total_pf) {
       last_total_pf = cur_total_pf;
       auto &potential_fault_set = fail_vec_to_fault[fail_no];
       bool backward_eliminate = false;
+
       /* for every input, set its value to the current vector value */
       for (i = 0; i < cktin.size(); i++) {
         cktin[i]->value = ctoi(vectors[fail_no][i]);
@@ -742,27 +745,22 @@ void ATPG::path_tracing() {
           sort_wlist[i]->value = U;
         }
       }
+
       sim(); /* do a fault-free simulation, see sim.cpp */
-      // for (int i = 0; i < sort_wlist.size(); i++) {
-      //   cout<<sort_wlist[i]->name<<" : "<<sort_wlist[i]->value<<endl;
-      // }
+
       if (init_output) {
         for (int i = 0; i < cktout.size(); i++) {
-          cktout_value[i] = cktout[i]->value;
+          cktout_temp[i] = cktout[i]->value;
         }
         init_output = false;
       }
       for (auto pf : potential_fault_set) {
-        //cout<<pf->fault_no<<endl;
         X_propagate(sort_wlist[pf->to_swlist]);
       }
-      // for (int i = 0; i < sort_wlist.size(); i++) {
-      //   cout<<sort_wlist[i]->name<<" : "<<sort_wlist[i]->value<<endl;
-      // }
       for (int i = 0; i < cktout.size(); i++) {
         if (cktout[i]->fail_vec_no != fail_no && cktout[i]->value == U) {
           backward_eliminate = true;
-          cktout[i]->value = cktout_value[i];
+          cktout[i]->value = cktout_temp[i];
           if (C_backward_imply(cktout[i], cktout[i]->value) == CONFLICT) cout<<"[Error] Backward implication fail!!!\n";
         }
       }
@@ -779,8 +777,8 @@ void ATPG::path_tracing() {
         }
       }
       iter++;
-      //cout<<"new: "<<potential_fault_set.size();
-      //cout<<"ori: "<<last_total_pf<<endl;
+      // cout<<"new: "<<potential_fault_set.size();
+      // cout<<"ori: "<<last_total_pf<<endl;
       cur_total_pf = fail_vec_to_fault[fail_no].size();
     }
     //cout<<endl;
@@ -906,23 +904,41 @@ void ATPG::X_propagate(wptr w) {
     w->value = U;
     while(!n_stack.empty()) {
       curnode = n_stack.top();
+      //cout<<curnode->name<<"XX"<<n_stack.size()<<endl;
       n_stack.pop();
-      if (curnode->type != OUTPUT)
+      //cout<<curnode->type<<endl;
+      if (curnode->type != OUTPUT) {
         curwire = curnode->owire.front();
-      else continue;
+        //cout<<curwire->name<<" "<<endl;
+      }
+      else {
+        //cout<<"keep going"<<endl;
+        continue;
+      }
       if (visited.find(curnode) == visited.end()) {
         visited.insert(curnode);
-        // Trace until reaching PI
+        // Trace until reaching PO
         if (curnode->type != OUTPUT) {
           curwire->value = U;
+          //cout<<curwire->name<<" "<<endl;
+          //cout<<curwire->onode.front()->type<<endl;
           for (auto& no : curwire->onode) {
-              if (no->type == OUTPUT) continue;
-              if (no->owire.front()->value != U)
+              //cout<<no->type<<"..."<<endl;
+              if (no->type == OUTPUT) {
+                //cout<<no->name<<" , "<<endl;
+                continue;
+              }
+              if (no->owire.front()->value != U) {
+                // cout<<no->owire.front()->value<<" ";
+                // cout<<no->owire.front()->name<<endl;
                 n_stack.push(no);
+              }
           }
+          //cout<<" out "<<endl;
         }
       }
     }
+    //cout<<"jump"<<endl;
 }
 
 /* Conservative backward implication */

@@ -70,7 +70,6 @@ void ATPG::sim() {
   }
   /* end TODO */
 
-
 }/* end of sim */
 
 

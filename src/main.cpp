@@ -75,23 +75,17 @@ int main(int argc, char *argv[]) {
     } 
     else {
       string temp = string(argv[i]);
-      i++;
       if (temp.compare(temp.size()-3,3,"ckt") == 0) {
         inpFile = temp;
       }
       if (temp.compare(temp.size()-7,7,"failLog") == 0) { 
         flogFile = temp;
-        int start_pos = temp.size();
-        for (int i = temp.size(); i >= 0; i--){
-            start_pos = i;
-            if (temp[i] == '/') break;
-        }
-        atpg.diagname = temp.substr(start_pos,temp.size());
-              cout<<atpg.diagname;
-
       }
+      if (strcmp(argv[i], "diag_report:") == 0) {
+        atpg.dfile = string(argv[i+1]);
+      }
+      i++;
     }
-
   }
 
   /* an input file was not specified, so describe the proper usage */
