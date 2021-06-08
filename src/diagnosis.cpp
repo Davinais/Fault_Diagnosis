@@ -37,12 +37,42 @@ void ATPG::diagnosis() {
 void ATPG::MSF_diagnosis() {
 
   path_tracing();
-  // for (auto fail_no : fail_vec_no) {
-  //   auto temp_list = fail_vec_to_fault[fail_no];
-  //   cout<<"vector "<<fail_no<<": \n";
-  //   for (auto f : temp_list) {
-  //     cout<<f->fault_no<<" : "<<sort_wlist[f->to_swlist]->name<<endl;
+
+  // auto final_set = fail_vec_to_fault.find(fail_vec_no[0]);
+  // for (int i = 1; i < fail_vec_no.size(); i++) {
+  //   auto curfailvec = fail_vec_to_fault.find(fail_vec_no[i]);
+  //   for (auto pf : curfailvec->second) {
+  //     final_set->second.insert(pf);
   //   }
+  // }
+  unordered_set<fptr> &final_set = fail_vec_to_fault[fail_vec_no[0]];
+  for (auto& pf : final_set) {
+    pf->TFSF++;
+  }
+  for (int i = 1; i < fail_vec_no.size(); i++) {
+    auto& curfailvec = fail_vec_to_fault[fail_vec_no[i]];
+    //cout<<fail_vec_no[i]<<" : "<<curfailvec.size()<<endl;
+    for (auto& pf : curfailvec) {
+      pf->TFSF++;
+      final_set.insert(pf);
+    }
+  }
+  result.clear();
+  for (auto& pf : final_set) {
+    pf->score = 100;
+    result.push_back(pf);
+  }
+  write_diagnosis_report();
+  // cout<<"Final suspects: "<<final_set.size()<<endl;
+  // for (auto& pf : final_set) {
+  //   cout<<pf->fault_no<<" - ";
+  //   cout<<sort_wlist[pf->to_swlist]->name<<" ";
+  //   cout<<pf->node->name<<" ";
+  //   if (pf->io) cout<<"GO ";
+  //   else cout<<"GI ";
+  //   if (pf->fault_type) cout<<"SA1,  ";
+  //   else cout<<"SA0,  :";
+  //   cout<<pf->TFSF<<endl;
   // }
 }
 
@@ -52,8 +82,6 @@ bool ATPG::SSF_diagnosis() {
     generate_fault_list();
     build_mapping(false);
     //cout<<"finish build\n";
-
-
     find_suspects();
     //cout<<"After diagnosis:\n";
     // for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
@@ -685,7 +713,7 @@ void ATPG::path_tracing() {
   // first for loop, find the potential faults for each pattern
   for (auto fail_no : fail_vec_no) {
     //int fail_no = 52;
-    //cout<<"vec["<<fail_no<<"]: ";
+    // cout<<"vec["<<fail_no<<"]: ";
 
     //bool backward_eliminate = false;
     /* for every input, set its value to the current vector value */
@@ -710,22 +738,25 @@ void ATPG::path_tracing() {
     // for (int i = 0; i < cktout.size(); i++) {
     //   cktout_temp[i] = cktout[i]->value;
     // }
-    for (auto fpo : fail_vec_to_FO[fail_no]) {
+    for (auto& fpo : fail_vec_to_FO[fail_no]) {
         w = name_to_po[fpo];
         w->fail_vec_no = fail_no;
         _curfo = w->wlist_index;
         path_trace_cone(w, fail_no);
     }
+    // for (auto& pf : fail_vec_to_fault[fail_no]) {
+    //   cout<<pf->fault_no<<" ";
+    // }
+    // cout<<endl;
     //cur_total_pf += fail_vec_to_fault[fail_no].size();
   }
 
-  for (auto fail_no : fail_vec_no) {
+  for (auto& fail_no : fail_vec_no) {
     int iter = 0;
     bool init_output = true;
     cur_total_pf = fail_vec_to_fault[fail_no].size();
     last_total_pf = cur_total_pf + 1;
     //cout<<"vec["<<fail_no<<"]: ";
-    
     while (cur_total_pf < last_total_pf) {
       last_total_pf = cur_total_pf;
       auto &potential_fault_set = fail_vec_to_fault[fail_no];
@@ -754,31 +785,38 @@ void ATPG::path_tracing() {
         }
         init_output = false;
       }
-      for (auto pf : potential_fault_set) {
+      for (auto& pf : potential_fault_set) {
         X_propagate(sort_wlist[pf->to_swlist]);
       }
+      //cout<<"After x_propagate: ";
+      // for (int i = 0; i < cktout.size(); i++) {
+      //   cout<<i<<" : "<<cktout[i]->value<<endl;
+      // }
+
       for (int i = 0; i < cktout.size(); i++) {
         if (cktout[i]->fail_vec_no != fail_no && cktout[i]->value == U) {
           backward_eliminate = true;
           cktout[i]->value = cktout_temp[i];
           if (C_backward_imply(cktout[i], cktout[i]->value) == CONFLICT) cout<<"[Error] Backward implication fail!!!\n";
         }
+        // cout<<i<<" : "<<cktout[i]->value<<endl;
       }
       if (backward_eliminate) {
         //cout<<"  Perform "<<iter<<"th backward elimination!!!\n";
         for (auto pos = potential_fault_set.begin(), last = potential_fault_set.end(); pos != last; ) {
           pf = *pos;
-          if ((pf->fault_type != sort_wlist[pf->to_swlist]->value) 
+          if ((pf->fault_type == sort_wlist[pf->to_swlist]->value) 
                   && sort_wlist[pf->to_swlist]->value != U) {
             pos = potential_fault_set.erase(pos);
           } else {
             ++pos;
           }
         }
+      // cout<<"new: "<<potential_fault_set.size();
+      // cout<<" ori: "<<last_total_pf<<endl;
       }
       iter++;
-      // cout<<"new: "<<potential_fault_set.size();
-      // cout<<"ori: "<<last_total_pf<<endl;
+
       cur_total_pf = fail_vec_to_fault[fail_no].size();
     }
     //cout<<endl;
@@ -811,7 +849,8 @@ void ATPG::path_trace_cone(wptr w, int fail_no) {
               for (auto& wi : curnode->iwire) 
                   n_stack.push(wi->inode.front());
               for (auto& f : gate_to_fault[curnode->name]) {
-                  curfailvec->second.insert(f);
+                  if (f->fault_type == SA0)     // only consider the fault that can be activated
+                    curfailvec->second.insert(f);
               }
             } else {
               for (auto& wi : curnode->iwire) {
@@ -819,8 +858,10 @@ void ATPG::path_trace_cone(wptr w, int fail_no) {
                   n_stack.push(wi->inode.front());
               }
               for (auto& f : gate_to_fault[curnode->name]) {
-                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 0) || f->io == GO)
-                  curfailvec->second.insert(f);
+                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 0) || f->io == GO) {
+                  if (f->fault_type == SA1)
+                    curfailvec->second.insert(f);
+                }
               }   
             }
             break;
@@ -829,31 +870,45 @@ void ATPG::path_trace_cone(wptr w, int fail_no) {
               for (auto& wi : curnode->iwire) 
                   n_stack.push(wi->inode.front());
               for (auto& f : gate_to_fault[curnode->name]) 
-                  curfailvec->second.insert(f);
+                  if ((f->io == GI && f->fault_type == SA1) || (f->io == GO && f->fault_type == SA0))
+                    curfailvec->second.insert(f);
             } else {
               for (auto& wi : curnode->iwire) {
                 if (wi->value == 1)
                   n_stack.push(wi->inode.front());
               }
               for (auto& f : gate_to_fault[curnode->name]) {
-                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 1) || f->io == GO)
+                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 1 && f->fault_type == SA0) 
+                    || (f->io == GO && f->fault_type == SA1))
                   curfailvec->second.insert(f);
               }   
             }
             break;
           case NAND :
             if (curwire->value == 0) {
+
               for (auto& wi : curnode->iwire) 
                   n_stack.push(wi->inode.front());
-              for (auto& f : gate_to_fault[curnode->name]) 
-                  curfailvec->second.insert(f);
+              for (auto& f : gate_to_fault[curnode->name]) {
+                  // if (sort_wlist[f->to_swlist]->name == "3GAT(2)") {
+                  //   cout<<curnode->name<<" ";
+                  //   cout<<"3GAT: "<<sort_wlist[f->to_swlist]->value<<" "<< f->fault_type<<" "<<f->io<<endl;
+                  // }
+                  if ((f->io == GI && f->fault_type == SA0) || (f->io == GO && f->fault_type == SA1))
+                    curfailvec->second.insert(f);
+              }
             } else {
               for (auto& wi : curnode->iwire) {
                 if (wi->value == 0) 
                   n_stack.push(wi->inode.front());
               }
               for (auto& f : gate_to_fault[curnode->name]) {
-                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 0) || f->io == GO)
+                // if (sort_wlist[f->to_swlist]->name == "3GAT(2)") {
+                //   cout<<curnode->name<<" ";
+                //   cout<<"3GAT: "<<sort_wlist[f->to_swlist]->value<<" "<< f->fault_type<<" "<<f->io<<endl;
+                // }
+                if ((f->io == GI && sort_wlist[f->to_swlist]->value == 0 && f->fault_type == SA1) 
+                    || (f->io == GO && f->fault_type == SA0))
                   curfailvec->second.insert(f);
               }   
             }   
@@ -863,6 +918,7 @@ void ATPG::path_trace_cone(wptr w, int fail_no) {
               for (auto& wi : curnode->iwire) 
                   n_stack.push(wi->inode.front());
               for (auto& f : gate_to_fault[curnode->name]) 
+                if (f->fault_type == SA1)
                   curfailvec->second.insert(f);
             } else {
               for (auto& wi : curnode->iwire) {
@@ -871,7 +927,8 @@ void ATPG::path_trace_cone(wptr w, int fail_no) {
               }
               for (auto& f : gate_to_fault[curnode->name]) {
                 if ((f->io == GI && sort_wlist[f->to_swlist]->value == 1) || f->io == GO)
-                  curfailvec->second.insert(f);
+                  if (f->fault_type == SA0)
+                    curfailvec->second.insert(f);
               }   
             }  
             break;
