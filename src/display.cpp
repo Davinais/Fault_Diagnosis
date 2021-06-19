@@ -289,6 +289,9 @@ void ATPG::write_diagnosis_report() {
   }
 
   double t_meas = (double) clock();
+  if (num_TFSF == 0 && num_TPSF == 0 && MSF) {
+    file<<"Successful MSF!!!\n";
+  }
   file<<"#run time="<<(t_meas - StartTime) / CLOCKS_PER_SEC<<" s\n";
 
 }

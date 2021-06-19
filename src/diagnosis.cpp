@@ -1354,7 +1354,8 @@ bool ATPG::determineMSF_suspect() {
     //cout<<f->fault_no<<" "<<f->score<<" ";
     //cout<<"TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP<<";";
     if (f->score > max) {
-
+      //cout<<f->fault_no<<" "<<f->score<<" ";
+      //cout<<"TFSF: "<<f->TFSF<<" TPSF:"<<f->TPSF<< " TFSP:"<<f->TFSP<<";\n";
       find = true;
       max = f->score;
       max_f = f;
@@ -1370,6 +1371,7 @@ bool ATPG::determineMSF_suspect() {
     max_f->TFSF = max_TFSF;
     max_f->TFSP = max_TFSP;
     max_f->TPSF = max_TPSF;
+      //cout<<"==============="<<max_f->fault_no<<" "<<max_f->score<<" ";
     MSF_suspect.push_back(max_f);
     //cout<<max_f->fault_no<<" : "<<max_f->score<<endl;
     for (auto fail_no : fail_vec_no) {
