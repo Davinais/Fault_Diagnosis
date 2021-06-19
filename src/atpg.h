@@ -126,6 +126,7 @@ class ATPG {
   void diagnosis();
   bool SSF_diagnosis();
   void MSF_diagnosis();
+  int total_target_fault;         /* record the number of faults for genfaillog */
 
   string dfile;                     /* for diagnosis report naming */
 
@@ -156,7 +157,7 @@ class ATPG {
   /* fault list */
   forward_list<fptr_s> flist;          /* fault list */
   forward_list<fptr> flist_undetect;   /* undetected fault list */
-
+  vector<fptr> MSF_suspect;           /* record five Multiple SAF suspect */
   /* circuit */
   vector<wptr> sort_wlist;             /* sorted wire list with regard to level */
   vector<wptr> cktin;                  /* input wire list */
@@ -185,8 +186,10 @@ class ATPG {
   map<string, bool> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   unordered_set<string> all_fail_opGate; /* record all output failling gate*/
   unordered_map<int, unordered_set<string>> fail_vec_to_FO; /* record all failing outputs for each corresponding failing pattern*/
+  
   //int *cktout_value;             /* record the good sim value of each PO */
 
+  bool MSF;                       /* flag for multiple SAF daignosis true for MSF, false for SSF*/
   // Diagnosis 
   int total_TF;
   /* Write Report*/
@@ -213,10 +216,15 @@ class ATPG {
   void structural_backtrace();
   void trace_cone(wptr w);
 
+  /* find suspects */
+  bool determineMSF_suspect();
+  void fault_sim_a_fault(const string &vec, bool check_suspect);
 
   /* DSIE algorithm */
-  void path_tracing();
-  void path_trace_cone(wptr w, int fail_no);
+  int num_TFSF;
+  int num_TPSF;
+  void DSIE();
+  void path_tracing(wptr w, int fail_no);
   void X_propagate(wptr w); 
   int C_backward_imply(const wptr current_wire, const int &desired_logic_value);  // Conservative implication
   /* reset_flist */

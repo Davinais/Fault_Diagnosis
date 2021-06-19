@@ -175,7 +175,7 @@ void ATPG::genFailLog_sim_a_vector(const string &vec, int &number){
         //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I")<<" " << "SA" << f->fault_type << endl;
         //if (f->fault_type != sort_wlist[f->to_swlist]->value) cout<<"Not activate!!!\n";
 
-        if (f->fault_type == sort_wlist[f->to_swlist]->value) continue;
+        if ((f->fault_type == sort_wlist[f->to_swlist]->value) && (total_target_fault == 1)) continue;
 
         fault_type = f->fault_type;
         // Since the fault is from user input(external), the 3rd arg of get_faulty_wire should be set as true.
@@ -245,7 +245,7 @@ void ATPG::parse_diag_log(fstream& in){
     string gateName, observed, pattern, _, vec_no;
     string pure_pattern;
     int temp, c_pos, last = -1;     // c_pos record the position of "[" in vec_no
-    bool ob;
+    //bool ob;
 
     while(1){
         // in >> _ >> vec_no >> gateName >> _ >> _ >> _ >> observed >> _ >> pattern;
@@ -266,15 +266,15 @@ void ATPG::parse_diag_log(fstream& in){
             fail_vec_no.push_back(temp);
         }
 
-        if(observed == "H") ob = 1;
-        else ob = 0;
+        //if(observed == "H") ob = 1;
+        //else ob = 0;
         //pair <string, bool> p;
         //p.first = gateName;
         //p.second = ob;
 
         //pattern_to_data[pure_pattern].push_back(p);
         //cout<<pure_pattern + gateName<<endl;
-        pattern_to_data.insert({pure_pattern + gateName,ob});
+        pattern_to_data.insert({pure_pattern + gateName,false});
         all_fail_opGate.insert(gateName);
 
         auto it = fail_vec_to_FO.find(temp);

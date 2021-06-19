@@ -141,6 +141,9 @@ ATPG::ATPG() {
 
     /* orginally assigned in test.c */
     this->in_vector_no = 0;         /* number of test vectors generated */
+    /* used in main.cpp and genFailLog.cpp */
+    this->total_target_fault = 0;
+    this->MSF = false;
 }
 
 /* constructor of WIRE */

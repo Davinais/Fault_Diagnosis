@@ -253,7 +253,7 @@ void ATPG::write_diagnosis_report() {
   for (auto pos = result.cbegin(); pos != result.cend(); ++pos) {
     fnum++;
     f = *pos;
-    if (f->score < 90) break;
+    if (f->score < 90 && !MSF ) break;
     w = sort_wlist[f->to_swlist];
     //file<<"No."<<fnum<<"  "<<w->name.substr(0,w->name.find("("))<<" ";
     file<<"No."<<fnum<<"  "<<w->name<<" ";
@@ -264,7 +264,7 @@ void ATPG::write_diagnosis_report() {
     else file<<"SA0,  ";
     file<<"TFSF="<<f->TFSF<<", TPSF="<<f->TPSF<<", TFSP="<<f->TFSP<<", score=";
     //score = static_cast<double>(f->TFSF) / static_cast<double>(f->TFSF + f->TPSF + f->TFSP);
-    if (f->eqv_fault_num == -1) {
+    if (f->eqv_fault_num > 1) {
       file<<setprecision(5)<<f->score<<" [equivalent faults: ";
       //for (auto pos = f->eqv_fault_list.begin(); pos != f->eqv_fault_list.end() ++pos) {
       eqpos = 1;

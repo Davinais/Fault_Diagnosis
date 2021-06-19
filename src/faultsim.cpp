@@ -95,9 +95,10 @@ void ATPG::fault_sim_a_vector(const string &vec, int &num_of_current_detect) {
     int fault_detected[num_of_faults_in_parallel] = {0}; //for n-det
     f = *pos;
     if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
-
+    if (MSF) f->detect = FALSE;
     /* consider only active (aka. excited) fault
      * (sa1 with correct output of 0 or sa0 with correct output of 1) */
+
     if (f->fault_type != sort_wlist[f->to_swlist]->value) {
 
       /* if f is a primary output or is directly connected to an primary output
@@ -105,6 +106,7 @@ void ATPG::fault_sim_a_vector(const string &vec, int &num_of_current_detect) {
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
         f->detected_time++;
+        f->TPSF++;
         if (f->detected_time == detected_num) {
           f->detect = TRUE;
         }
@@ -149,8 +151,10 @@ void ATPG::fault_sim_a_vector(const string &vec, int &num_of_current_detect) {
             /* if the faulty_wire is a primary output, it is detected */
             if (faulty_wire->is_output()) {
               f->detected_time++;
+              f->TPSF++;
               if (f->detected_time == detected_num) {
                 f->detect = TRUE;
+                //f->TPSF++;
               }
             } else {
               /* if faulty_wire is not already marked as faulty, mark it as faulty
@@ -227,6 +231,8 @@ void ATPG::fault_sim_a_vector(const string &vec, int &num_of_current_detect) {
                 if (((w->wire_value2 & Mask[i]) ^ Unknown[i]) &&  // and not unknowns
                     ((w->wire_value1 & Mask[i]) ^ Unknown[i])) {
                   fault_detected[i] = 1;// then the fault is detected
+                  simulated_fault_list[i]->TPSF++;
+
                 }
               }
             }
@@ -250,15 +256,20 @@ void ATPG::fault_sim_a_vector(const string &vec, int &num_of_current_detect) {
   } // end loop. for f = flist
 
   /* fault dropping  */
-  flist_undetect.remove_if(
-      [&](const fptr fptr_ele) {
-        if (fptr_ele->detect == TRUE) {
-          num_of_current_detect += fptr_ele->eqv_fault_num;
-          return true;
-        } else {
-          return false;
-        }
-      });
+  // if (total_target_fault > 1) {
+
+  // } else {
+  if (!MSF) {
+    flist_undetect.remove_if(
+        [&](const fptr fptr_ele) {
+          if (fptr_ele->detect == TRUE) {
+            num_of_current_detect += fptr_ele->eqv_fault_num;
+            return true;
+          } else {
+            return false;
+          }
+        });
+  }
 }/* end of fault_sim_a_vector */
 
 /* evaluate wire w 

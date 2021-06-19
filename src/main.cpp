@@ -49,6 +49,8 @@ int main(int argc, char *argv[]) {
       atpg.set_genFailLog_IO(string(argv[i + 3]));
       atpg.set_genFailLog_Type(string(argv[i + 4]));
       i += 5;
+      atpg.total_target_fault++;
+      //if (atpg.total_target_fault > 1) atpg.MSF = true;
     }
     else if (strcmp(argv[i], "-diag") == 0) {
       vetFile = string(argv[i + 1]);
