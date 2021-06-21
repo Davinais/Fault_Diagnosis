@@ -147,6 +147,7 @@ class ATPG {
   class NODE;
   class FAULT;
   class EQV_FAULT;
+  class MSF_FIRST;
   typedef WIRE *wptr;                 /* using pointer to access/manipulate the instances of WIRE */
   typedef NODE *nptr;                 /* using pointer to access/manipulate the instances of NODE */
   typedef FAULT *fptr;                 /* using pointer to access/manipulate the instances of FAULT */
@@ -158,6 +159,7 @@ class ATPG {
   forward_list<fptr_s> flist;          /* fault list */
   forward_list<fptr> flist_undetect;   /* undetected fault list */
   vector<fptr> MSF_suspect;           /* record five Multiple SAF suspect */
+  vector<fptr> best_suspect;           /* record five Multiple SAF suspect */
   /* circuit */
   vector<wptr> sort_wlist;             /* sorted wire list with regard to level */
   vector<wptr> cktin;                  /* input wire list */
@@ -181,12 +183,13 @@ class ATPG {
   bool genFailLog_only;                /* flag to indicate genFailLog simulation only */
   bool diag_only;                      /* flag to indicate diag only */
   // vector<string> fail_vector;          /* record all patterns show in faillog*/
-  vector<int> fail_vec_no;             /* record the ID of failing vector
+  vector<int> fail_vec_no;             /* record the ID of failing vector */
+  vector<MSF_FIRST*> MSF_first_list;   /* record first suspect of MSF */
   //map<string, vector<pair<string,bool>>> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   map<string, bool> pattern_to_data;  /* key : pattern, pair.first() = gate, pair.second() = observed*/
   unordered_set<string> all_fail_opGate; /* record all output failling gate*/
   unordered_map<int, unordered_set<string>> fail_vec_to_FO; /* record all failing outputs for each corresponding failing pattern*/
-  
+
   //int *cktout_value;             /* record the good sim value of each PO */
 
   bool MSF;                       /* flag for multiple SAF daignosis true for MSF, false for SSF*/
@@ -223,13 +226,16 @@ class ATPG {
   /* DSIE algorithm */
   int num_TFSF;
   int num_TPSF;
+  int best_TFSF;
+  int best_TPSF;
   void DSIE();
   void path_tracing(wptr w, int fail_no);
   void X_propagate(wptr w); 
   int C_backward_imply(const wptr current_wire, const int &desired_logic_value);  // Conservative implication
   /* reset_flist */
   void reset_flist();
-
+  /* compute the suspects for MSF, and they are potential first suspect*/
+  void compute_MSF_first_list(int& num_first);
   vector<fptr> result;
   // mapping
   unordered_map<string, wptr> name_to_po;            // given a name, find its wire (primary output) 
@@ -465,6 +471,17 @@ class ATPG {
     short fault_type;          /* s-a-1 or s-a-0 or slow-to-rise or slow-to-fall fault */
     int to_swlist;             /* index to the sort_wlist[] */
   }; // class FAULT  
+  
+  // record the information of MSF first suspects 
+  class MSF_FIRST {
+    public:
+      MSF_FIRST(fptr _fault, int _TFSF, int _TPSF, int _TFSP, double _score);
+      fptr fault;
+      int TFSF;
+      int TFSP;
+      int TPSF;
+      double score;
+  };
 
 
 };// class ATPG

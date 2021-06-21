@@ -38,22 +38,23 @@ void ATPG::diagnosis() {
 }
 
 void ATPG::MSF_diagnosis() {
-  bool finish_MSF = false;
+  //bool finish_MSF = false;
   fptr f;
   int cur_id = 0, num = 0;
-  MSF = true;
   bool successful_MSF = true;
-  //int iter = 0;
-  DSIE();
-  // auto final_set = fail_vec_to_fault.find(fail_vec_no[0]);
-  // for (int i = 1; i < fail_vec_no.size(); i++) {
-  //   auto curfailvec = fail_vec_to_fault.find(fail_vec_no[i]);
-  //   for (auto pf : curfailvec->second) {
-  //     final_set->second.insert(pf);
-  //   }
-  // }
-  unordered_set<fptr> &final_set = fail_vec_to_fault[fail_vec_no[0]];
+  int iter = 0;
+  int num_first = 4;            /* use this parameter to control the solution space */
+  int best_TFSFA[5] = {0};
+  int best_TFSPA[5] = {0};
+  int best_TPSFA[5] = {0};
+  double best_score[5] = {0};
 
+  MSF = true;
+  best_TFSF = 999999;
+  best_TPSF = 999999;
+
+  DSIE();
+  unordered_set<fptr> &final_set = fail_vec_to_fault[fail_vec_no[0]];
   for (int i = 1; i < fail_vec_no.size(); i++) {
     auto& curfailvec = fail_vec_to_fault[fail_vec_no[i]];
     //cout<<fail_vec_no[i]<<" : "<<curfailvec.size()<<endl;
@@ -65,57 +66,116 @@ void ATPG::MSF_diagnosis() {
   for (auto& pf : final_set) {
     flist_undetect.push_front(pf);
   }
-  while (!finish_MSF) {
-    for (auto fail_no : fail_vec_no) {
-        fault_sim_a_failvector(vectors[fail_no]);
+  compute_MSF_first_list(num_first);
+  while (iter != MSF_first_list.size()) {
+    if (iter != 0) {  // reset flist_undetect
+      for (auto& suspect : MSF_suspect) {
+        //cout<<sort_wlist[suspect->to_swlist]->name<<" "<<suspect->score<<" ";
+        //cout<<"TFSF: "<<suspect->TFSF<<" TPSF:"<<suspect->TPSF<< " TFSP:"<<suspect->TFSP<<";";        
+        //cout<<suspect->fault_no<<", ";
+        suspect->TFSF = 0;
+        suspect->TPSF = 0;
+        suspect->TFSP = 0;
+        flist_undetect.push_front(suspect);
+      }
+      //cout<<endl;
+      MSF_suspect.clear();
     }
-    // reset f->detect
-    for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-        f = *pos;
-        f->detect = FALSE;
-        f->detected_time = 0;
+    MSF_FIRST* current_first = MSF_first_list[iter];
+    fptr max_f = current_first->fault;
+    //cout<<max_f->fault_no<<endl;
+    //MSF_first_list.pop_front();
+    max_f->TFSF = current_first->TFSF;
+    max_f->TFSP = current_first->TFSP;
+    max_f->TPSF = current_first->TPSF;
+    max_f->score = current_first->score;
+    MSF_suspect.push_back(max_f);
+    flist_undetect.remove(max_f);
+    while (1) {
+      for (auto fail_no : fail_vec_no) {
+          fault_sim_a_failvector(vectors[fail_no]);
+      }
+      // reset f->detect
+      for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+          f = *pos;
+          f->detect = FALSE;
+          f->detected_time = 0;
+      }
+      // check TPSF in the other pattern, improve resolution by removing suspects
+      for (int i = vectors.size() - 1; i > -1; i--) {
+          //if (cur_id == fail_vec_no.size()) {
+          //    break;
+          //} else 
+          if (cur_id != fail_vec_no.size() && i == fail_vec_no[cur_id]) {
+              cur_id++;
+          } else {
+              //cout<<"vec["<<i<<"]:"<<vectors[i]<<endl;
+              fault_sim_a_vector(vectors[i], num);
+          }
+      }
+      determineMSF_suspect();
+      if (MSF_suspect.size() == 5) break;
+    //finish_MSF = true;
+      num_TFSF = pattern_to_data.size();
+      num_TPSF = 0;
+      for (auto vec : vectors) {
+        fault_sim_a_fault(vec, true);
+      }
+      if (num_TFSF == 0 && num_TPSF == 0) break;
+      cur_id = 0;
     }
-    // check TPSF in the other pattern, improve resolution by removing suspects
-    for (int i = vectors.size() - 1; i > -1; i--) {
-        //if (cur_id == fail_vec_no.size()) {
-        //    break;
-        //} else 
-        if (cur_id != fail_vec_no.size() && i == fail_vec_no[cur_id]) {
-            cur_id++;
-        } else {
-            //cout<<"vec["<<i<<"]:"<<vectors[i]<<endl;
-            fault_sim_a_vector(vectors[i], num);
-        }
-    }
-    determineMSF_suspect();
-    if (MSF_suspect.size() == 5) break;
-    finish_MSF = true;
-    for (auto it = pattern_to_data.begin(); it != pattern_to_data.end();it++) {
-      if (!it->second) { 
-        finish_MSF = false;
-        break;
+    if (num_TFSF == 0 && num_TPSF == 0) break;
+    else if (num_TFSF + num_TPSF < best_TFSF + best_TPSF) {
+      int i = 0;
+      best_TFSF = num_TFSF;
+      best_TPSF = num_TPSF;
+      best_suspect.clear();
+      for (auto suspect: MSF_suspect) {
+        best_suspect.push_back(suspect);
+        best_TFSFA[i] = suspect->TFSF;
+        best_TFSPA[i] = suspect->TFSP;
+        best_TPSFA[i] = suspect->TPSF;
+        best_score[i] = suspect->score;
+        i++;
       }
     }
-    cur_id = 0;
+    // for (auto it = pattern_to_data.begin(); it != pattern_to_data.end();it++) {
+    //   if (!it->second) { 
+    //     finish_MSF = false;
+    //     break;
+    //   }
+    // }
+    iter++;
   }
-  num_TFSF = pattern_to_data.size();
-  num_TPSF = 0;
-  for (auto vec : vectors) {
-    fault_sim_a_fault(vec, true);
-  }
+  // num_TFSF = pattern_to_data.size();
+  // num_TPSF = 0;
+  // for (auto vec : vectors) {
+  //   fault_sim_a_fault(vec, true);
+  // }
+  result.clear();
   cout<<"*********************\n";
   cout<<"* Diagnosis Summary *\n";
   cout<<"*********************\n";
   if (num_TFSF == 0 && num_TPSF == 0) {
-    cout<<"  Successful MSF!!!\n";
+    cout<<"  Successful MSF!!!\n"; 
+    for (auto suspect : MSF_suspect) {
+      result.push_back(suspect);
+    }
   }
   else {
     cout<<"  Unsuccessful MSF!!!\n";
-    cout<<"  Total TFSF: "<<pattern_to_data.size()<<" Remain TFSF: "<<num_TFSF<<" TPSF: "<<num_TPSF<<endl;
+    cout<<"  Total TFSF: "<<pattern_to_data.size()<<" Remain TFSF: "<<best_TFSF<<" TPSF: "<<best_TPSF<<endl;
+    int i = 0;
+    for (auto suspect : best_suspect) {
+      suspect->TFSF = best_TFSFA[i];
+      suspect->TFSP = best_TFSPA[i];
+      suspect->TPSF = best_TPSFA[i];
+      suspect->score = best_score[i];      
+      result.push_back(suspect);
+      i++;
+    }
   }
-  for (auto suspect : MSF_suspect) {
-    result.push_back(suspect);
-  }
+
   sort(result.begin(), result.end(), compareScore);
   findEQV();
   write_diagnosis_report();
@@ -753,14 +813,13 @@ void ATPG::trace_cone(wptr w) {
 void ATPG::reset_flist() {
   fptr f;
   flist_undetect.clear();
-  result.clear();
 
   for (auto& f : flist) {
     f->TFSF = 0;
     f->TPSF = 0;
     f->TFSP = 0;
     f->score = 0.0;
-    f->detect = false;
+    //f->detect = false;
     //flist_undetect.push_front(f.get());
   }
   //flist_undetect.reverse();
@@ -1488,3 +1547,58 @@ void ATPG::fault_sim_a_fault(const string &vec, bool check_suspect) {
     start_wire_index = 10000;  //reset this index to a very large value.
   
 }/* end of fault_sim_a_fault */
+
+void ATPG::compute_MSF_first_list(int& num_first) {
+  fptr f;
+  int cur_id = 0, num = 0, fault_num;
+  double cur_score;
+  for (auto fail_no : fail_vec_no) {
+      fault_sim_a_failvector(vectors[fail_no]);
+  }
+  for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+      f = *pos;
+      f->detect = FALSE;
+      f->detected_time = 0;
+  }
+  // check TPSF in the other pattern, improve resolution by removing suspects
+  for (int i = vectors.size() - 1; i > -1; i--) {
+      if (cur_id != fail_vec_no.size() && i == fail_vec_no[cur_id]) {
+          cur_id++;
+      } else {
+          fault_sim_a_vector(vectors[i], num);
+      }
+  }
+  for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+    f = *pos;
+    f->TFSP = total_TF - f->TFSF;
+    f->score = static_cast<double>(f->TFSF) / static_cast<double>(f->TFSF + f->TPSF + f->TFSP) * 100.0;
+    result.push_back(f);
+    // f->TFSF = 0;
+    // f->TFSP = 0;
+    // f->TPSF = 0;
+  }  
+  sort(result.begin(), result.end(), compareScore);
+  cur_score = result[0]->score;
+  fault_num = result.size();
+  for (int i = 0; i < fault_num; i++) {
+    //cout<<result[i]->fault_no<<" score: "<<result[i]->score<<" TFSF: "<<result[i]->TFSF<<" TPSF: "<<result[i]->TPSF<<endl;
+    MSF_first_list.push_back(
+      new MSF_FIRST(result[i], 
+                    result[i]->TFSF, 
+                    result[i]->TPSF, 
+                    result[i]->TFSP, 
+                    result[i]->score));
+    if (cur_score > result[i]->score) {
+      //cout<<cur_score<<"!!\n";
+      cur_score = result[i]->score;
+      num_first--;
+    }
+    if (num_first == 0) break;
+  }
+  for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
+    f = *pos;
+    f->TFSF = 0;
+    f->TFSP = 0;
+    f->TPSF = 0;
+  }  
+}

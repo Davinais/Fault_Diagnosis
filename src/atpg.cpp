@@ -185,3 +185,11 @@ ATPG::EQV_FAULT::EQV_FAULT(nptr _node, short _io, short _fault_type, int _to_swl
     fault_type = _fault_type;
     to_swlist = _to_swlist;
 }
+
+ATPG::MSF_FIRST::MSF_FIRST(fptr _fault, int _TFSF, int _TPSF, int _TFSP, double _score) {
+    fault = _fault;
+    TFSF = _TFSF;
+    TPSF = _TPSF;
+    TFSP = _TFSP;
+    score = _score;
+}
