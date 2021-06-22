@@ -255,7 +255,6 @@ void ATPG::write_diagnosis_report() {
     f = *pos;
     if (f->score < 90 && !MSF ) break;
     w = sort_wlist[f->to_swlist];
-    //file<<"No."<<fnum<<"  "<<w->name.substr(0,w->name.find("("))<<" ";
     file<<"No."<<fnum<<"  "<<w->name<<" ";
     file<<f->node->name<<" ";
     if (f->io) file<<"GO ";
@@ -263,12 +262,9 @@ void ATPG::write_diagnosis_report() {
     if (f->fault_type) file<<"SA1,  ";
     else file<<"SA0,  ";
     file<<"TFSF="<<f->TFSF<<", TPSF="<<f->TPSF<<", TFSP="<<f->TFSP<<", score=";
-    //score = static_cast<double>(f->TFSF) / static_cast<double>(f->TFSF + f->TPSF + f->TFSP);
     if (f->eqv_fault_num > 1) {
       file<<setprecision(5)<<f->score<<" [equivalent faults: ";
-      //for (auto pos = f->eqv_fault_list.begin(); pos != f->eqv_fault_list.end() ++pos) {
       eqpos = 1;
-      //cout<<f->eqv_fault_num<<"\n\n\n";
       for (auto ef : f->eqv_fault_list) {
         w = sort_wlist[ef->to_swlist];
         file<<w->name.substr(0,w->name.find("("))<<" "<<ef->node->name<<" ";
@@ -289,9 +285,9 @@ void ATPG::write_diagnosis_report() {
   }
 
   double t_meas = (double) clock();
-  if (num_TFSF == 0 && num_TPSF == 0 && MSF) {
-    file<<"Successful MSF!!!\n";
-  }
+  // if (num_TFSF == 0 && num_TPSF == 0 && MSF) {
+  //   file<<"Successful MSF!!!\n";
+  // }
   file<<"#run time="<<(t_meas - StartTime) / CLOCKS_PER_SEC<<" s\n";
 
 }
