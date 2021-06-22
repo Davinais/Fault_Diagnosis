@@ -232,7 +232,7 @@ void ATPG::write_diagnosis_report() {
   int fnum = 0;
 
   cout<<"The diagnosis report is generated at "<<dfile<<endl;
-  ofstream file(dfile, std::ifstream::out | std::ofstream::app); // open the input vectors' file
+  ofstream file(dfile, std::ifstream::out); // open the input vectors' file
   if (!file) { // if the ofstream obj does not exist, fail to open the file
     fprintf(stderr, "File %s could not be opened\n", dfile.c_str());
     cout<<"The outputfile should be "<<dfile<<endl;

@@ -1,6 +1,6 @@
 #
 
-CFLAGS = -std=c++11 -g -lm 
+CFLAGS = -std=c++11 -O3 -lm 
 
 FILES = atpg.o main.o input.o level.o sim.o podem.o init_flist.o faultsim.o display.o tdfsim.o genFailLog.o diagnosis.o
 
